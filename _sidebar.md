@@ -2,26 +2,28 @@
 
 - [🏠 首页](/)
 - [📖 课程简介](/#课程简介)
-- [🎯 学习路径](/#学习路径)
+- [🎯 培养目标](/#培养目标)
+- [📚 完整知识体系](/#完整知识体系)
+- [🎯 学习路径建议](/#学习路径建议)
 
 ---
 
 ## 阶段 1：数学基础
 
 - [概览](01-math-foundation/README)
-- [Day 1: 向量](01-math-foundation/day-01-vector)
-- [Day 2: 矩阵](01-math-foundation/day-02-matrix)
-- [Day 3: 线性变换](01-math-foundation/day-03-linear-transform)
-- [Day 4: 行列式](01-math-foundation/day-04-determinant)
-
-📖 [完整数学基础](https://cloudyan.github.io/ai-math-docs/)
+- **线性代数**
+  - [向量](01-math-foundation/day-01-vector)
+  - [矩阵](01-math-foundation/day-02-matrix)
+  - [线性变换](01-math-foundation/day-03-linear-transform)
+  - [行列式](01-math-foundation/day-04-determinant)
+- 📖 [完整数学基础](https://cloudyan.github.io/ai-math-docs/)
 
 ---
 
 ## 阶段 2：Python 编程基础
 
 - [概览](02-python-basics/README)
-- [Python 核心语法](02-python-basics/python-core)
+- [Python 核心](02-python-basics/python-core)
 - [NumPy 与 Pandas](02-python-basics/numpy-pandas)
 
 ---
@@ -31,7 +33,7 @@
 - [概览](03-machine-learning/README)
 - 监督学习（待补充）
 - 无监督学习（待补充）
-- 集成学习（待补充）
+- 特征工程（待补充）
 
 ---
 
