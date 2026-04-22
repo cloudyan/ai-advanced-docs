@@ -1,927 +1,698 @@
-# 第 7 章：AI Agent（6-8 周）
+# 阶段 7：AI Agent
 
-> 构建自主智能体 —— 从感知到行动，从单兵到协作
-> 
-> _学习周期：6-8 周 | 难度：⭐⭐⭐⭐ | 重要性：⭐⭐⭐⭐⭐_
+_智能体系统的设计与实现_
 
 ---
 
-## 📖 本章概述
+## 📖 学习指南
 
-### 什么是 AI Agent？
+**前置知识**：
+- ✅ LLM 应用基础
+- ✅ Python 编程
+- ✅ API 调用基础
 
-```
-传统 AI：输入 → 模型 → 输出（一次性）
+**学习目标**：
+- ✅ 理解 Agent 的核心架构
+- ✅ 掌握规划与推理能力
+- ✅ 掌握工具使用（Function Calling）
+- ✅ 掌握记忆机制
+- ✅ 能开发多 Agent 系统
 
-AI Agent：感知 → 思考 → 行动 → 观察 → 循环...
-              ↑                    │
-              └────────────────────┘
-                   持续学习与改进
-```
-
-### Agent 的核心能力
-
-| 能力 | 描述 | 示例 |
-|------|------|------|
-| **感知** | 获取环境信息 | 读取文件、搜索网络、API 调用 |
-| **思考** | 分析、规划、推理 | 任务分解、策略制定 |
-| **行动** | 执行操作改变环境 | 写代码、调用工具、发送消息 |
-| **记忆** | 存储和检索信息 | 对话历史、知识库、经验 |
-| **学习** | 从经验中改进 | 反思、技能积累 |
-
-### 本章学习目标
-
-学完本章后，你将能够：
-- ✅ 理解 Agent 的架构设计原理
-- ✅ 实现具备规划能力的 Agent
-- ✅ 为 Agent 集成多种工具
-- ✅ 构建自进化 Agent（能从失败中学习）
-- ✅ 设计多 Agent 协作系统
+**预计时间**：30 天
 
 ---
 
-## 📚 学习大纲
+## 7.1 Agent 核心架构
 
-### 7.1 Agent 基础（1 周）
+### 什么是 Agent？
 
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### Agent 架构
+<div class="formula-box">
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        AI Agent 架构                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐     │
-│  │   感知层    │      │   思考层    │      │   行动层    │     │
-│  │             │      │             │      │             │     │
-│  │ • 用户输入  │─────▶│ • 任务理解  │─────▶│ • 工具调用  │     │
-│  │ • 环境观察  │      │ • 规划分解  │      │ • 执行操作  │     │
-│  │ • 工具返回  │      │ • 推理决策  │      │ • 输出结果  │     │
-│  └─────────────┘      └─────────────┘      └─────────────┘     │
-│         ▲                    │                    │            │
-│         │                    ▼                    │            │
-│         │            ┌─────────────┐              │            │
-│         │            │   记忆层    │              │            │
-│         │            │             │◀─────────────┘            │
-│         │            │ • 短期记忆  │                           │
-│         └────────────│ • 长期记忆  │                           │
-│                      │ • 技能库    │                           │
-│                      └─────────────┘                           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+LLM Agent = LLM（大脑）+ 规划 + 工具使用 + 记忆
+
+核心能力：
+1. 感知（Perception）
+   - 理解用户输入
+   - 感知环境状态
+
+2. 规划（Planning）
+   - 任务分解
+   - 多步推理
+   - 反思与修正
+
+3. 行动（Action）
+   - 工具使用
+   - API 调用
+   - 代码执行
+
+4. 记忆（Memory）
+   - 短期记忆（上下文）
+   - 长期记忆（向量数据库）
 ```
 
-#### 基础 Agent 实现
+</div>
+
+### Agent 架构演进
+
+<div class="formula-box">
+
+```
+ReAct (2022)：
+Reason + Act
+推理与行动交替进行
+
+Reflexion (2023)：
+添加反思机制
+从失败中学习
+
+Tree of Thoughts (2023)：
+多路径探索
+选择最优解
+
+AutoGen (2023)：
+多 Agent 协作
+角色分工
+```
+
+</div>
+
+---
+
+## 7.2 规划能力
+
+### 任务分解
+
+<div class="formula-box">
+
+```
+复杂任务 → 子任务 1 → 子任务 2 → ... → 结果
+
+示例：
+"帮我规划一次北京旅行"
+  ↓
+1. 查询北京天气
+2. 预订机票
+3. 预订酒店
+4. 规划景点路线
+5. 推荐餐厅
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
-from typing import List, Dict, Optional
-from dataclasses import dataclass
-from enum import Enum
-
-class ActionType(Enum):
-    SEARCH = "search"
-    CODE = "code"
-    API_CALL = "api_call"
-    FILE_READ = "file_read"
-    FILE_WRITE = "file_write"
-    MESSAGE = "message"
-
-@dataclass
-class Action:
-    type: ActionType
-    params: Dict
-    description: str
-
-@dataclass
-class Observation:
-    success: bool
-    result: str
-    error: Optional[str] = None
-
-class BaseAgent:
-    """基础 Agent 类"""
-    
-    def __init__(self, llm, tools: Dict = None):
-        self.llm = llm
-        self.tools = tools or {}
-        self.memory = []  # 对话历史
-        self.max_iterations = 10
-        
-    def run(self, task: str) -> str:
-        """执行任务的主循环"""
-        self.memory.append({"role": "user", "content": task})
-        
-        for iteration in range(self.max_iterations):
-            # 1. 思考：决定下一步行动
-            thought = self._think()
-            
-            # 2. 行动：执行决定的行动
-            if thought.action:
-                observation = self._act(thought.action)
-                self.memory.append({
-                    "role": "observation",
-                    "content": observation.result
-                })
-                
-                # 3. 判断是否完成
-                if thought.is_complete:
-                    return thought.final_answer
-            else:
-                # 没有行动，直接回答
-                return thought.response
-        
-        return "达到最大迭代次数，任务未完成"
-    
-    def _think(self) -> 'Thought':
-        """思考：分析当前状态，决定下一步"""
-        # 构建 Prompt
-        prompt = self._build_prompt()
-        
-        # 调用 LLM
-        response = self.llm.generate(prompt)
-        
-        # 解析响应
-        thought = self._parse_response(response)
-        return thought
-    
-    def _act(self, action: Action) -> Observation:
-        """行动：执行具体操作"""
-        if action.type not in self.tools:
-            return Observation(
-                success=False,
-                result="",
-                error=f"Unknown action type: {action.type}"
-            )
-        
-        try:
-            result = self.tools[action.type](**action.params)
-            return Observation(success=True, result=str(result))
-        except Exception as e:
-            return Observation(success=False, result="", error=str(e))
-    
-    def _build_prompt(self) -> str:
-        """构建思考用的 Prompt"""
-        # 学员完成：根据记忆和可用工具构建 Prompt
-        pass
-    
-    def _parse_response(self, response: str) -> 'Thought':
-        """解析 LLM 响应"""
-        # 学员完成：解析 Thought-Action 格式
-        pass
-
-@dataclass
-class Thought:
-    analysis: str          # 当前分析
-    action: Optional[Action]  # 要执行的行动
-    is_complete: bool      # 是否完成任务
-    final_answer: str      # 最终答案（如果完成）
-```
-
----
-
-#### 工具注册与调用
-
-```python
-import requests
-import subprocess
-
-class ToolRegistry:
-    """工具注册表"""
-    
-    def __init__(self):
-        self.tools = {}
-        
-    def register(self, name: str, func, description: str):
-        """注册一个工具"""
-        self.tools[name] = {
-            "func": func,
-            "description": description
-        }
-    
-    def get_tool(self, name: str):
-        return self.tools.get(name)
-    
-    def list_tools(self) -> str:
-        """列出所有可用工具"""
-        result = []
-        for name, info in self.tools.items():
-            result.append(f"- {name}: {info['description']}")
-        return "\n".join(result)
-
-# 注册常用工具
-registry = ToolRegistry()
-
-# 搜索工具
-def search_web(query: str) -> str:
-    """搜索网络获取信息"""
-    # 实际实现调用搜索 API
-    return f"搜索结果：关于'{query}'的信息..."
-
-registry.register("search", search_web, "搜索网络获取实时信息")
-
-# 代码执行工具
-def execute_code(code: str, language: str = "python") -> str:
-    """执行代码并返回结果"""
-    try:
-        if language == "python":
-            result = subprocess.run(
-                ["python3", "-c", code],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            return result.stdout or result.stderr
-    except Exception as e:
-        return f"执行错误：{e}"
-
-registry.register("code", execute_code, "执行 Python 代码")
-
-# 文件读取工具
-def read_file(path: str) -> str:
-    """读取文件内容"""
-    with open(path, 'r') as f:
-        return f.read()
-
-registry.register("file_read", read_file, "读取文件内容")
-
-# 文件写入工具
-def write_file(path: str, content: str) -> str:
-    """写入文件内容"""
-    with open(path, 'w') as f:
-        f.write(content)
-    return f"成功写入 {len(content)} 字节到 {path}"
-
-registry.register("file_write", write_file, "写入文件内容")
-```
-
----
-
-#### ✅ 实践项目：基础 Agent 框架
-
-```python
-"""
-项目：实现一个可工作的基础 Agent
-要求：
-1. 支持思考 - 行动循环
-2. 集成至少 3 个工具（搜索、代码、文件）
-3. 能完成简单任务（如"搜索天气并写入文件"）
-4. 有最大迭代次数限制
-"""
-
-# 学员完成
-```
-
-</details>
-
----
-
-### 7.2 规划能力（2 周）
-
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### 任务分解
-
-```
-复杂任务：帮我分析这家公司的财务状况
-
-分解后：
-├── 1. 搜索公司名称和基本信息
-├── 2. 获取最新财报数据
-├── 3. 计算关键财务指标
-│   ├── 3.1 资产负债率
-│   ├── 3.2 流动比率
-│   └── 3.3 ROE
-├── 4. 与行业平均水平对比
-└── 5. 生成分析报告
-```
-
-#### 思维链（Chain of Thought, CoT）
-
-**CoT Prompt 示例**：
-```
-问题：小明有 5 个苹果，他给了小红 2 个，又买了 3 个，现在有几个？
-
-普通 Prompt：
-"小明现在有几个苹果？"
-→ 可能直接回答，容易出错
-
-CoT Prompt:
-"小明现在有几个苹果？请逐步思考。"
-→ 思考过程：
-   1. 初始：5 个苹果
-   2. 给小红 2 个：5 - 2 = 3 个
-   3. 又买 3 个：3 + 3 = 6 个
-   4. 答案：6 个
-```
-
-**代码实现**：
-```python
-class CoTAgent(BaseAgent):
-    """支持思维链的 Agent"""
-    
-    def _build_prompt(self) -> str:
-        prompt = """你是一个智能助手。请逐步思考问题，然后决定行动。
-
-可用工具：
-""" + self.registry.list_tools() + """
-
-对话历史：
-""" + self._format_memory() + """
-
-请按照以下格式思考：
-
-Thought: 分析当前情况和已完成的工作
-Plan: 下一步计划
-Action: 要执行的动作（如果有）
-"""
-        return prompt
-    
-    def _parse_response(self, response: str) -> Thought:
-        # 解析 CoT 响应
-        lines = response.strip().split('\n')
-        
-        thought_text = ""
-        action = None
-        is_complete = False
-        final_answer = ""
-        
-        for line in lines:
-            if line.startswith('Thought:'):
-                thought_text = line.replace('Thought:', '').strip()
-            elif line.startswith('Action:'):
-                action = self._parse_action(line)
-            elif line.startswith('Final Answer:'):
-                is_complete = True
-                final_answer = line.replace('Final Answer:', '').strip()
-        
-        return Thought(
-            analysis=thought_text,
-            action=action,
-            is_complete=is_complete,
-            final_answer=final_answer
-        )
-```
-
----
-
-#### 思维树（Tree of Thoughts, ToT）
-
-```
-ToT 核心思想：探索多种可能的思考路径
-
-        初始问题
-           │
-    ┌──────┼──────┐
-    │      │      │
-  路径 1  路径 2  路径 3
-    │      │      │
-    ▼      ▼      ▼
-  评估   评估   评估
-    │      │      │
-    └──────┼──────┘
-           │
-      选择最佳路径
-           │
-           ▼
-      继续探索...
-```
-
-**代码实现**：
-```python
-import heapq
-from typing import List, Tuple
-
-class ToTNode:
-    """思维树节点"""
-    def __init__(self, thought: str, score: float, parent=None):
-        self.thought = thought
-        self.score = score  # 评估分数
-        self.parent = parent
-        self.children = []
-        self.depth = parent.depth + 1 if parent else 0
-    
-    def __lt__(self, other):
-        return self.score > other.score  # 高分优先
-
-class TreeOfThoughtAgent(BaseAgent):
-    """支持思维树的 Agent"""
-    
-    def __init__(self, llm, tools=None, beam_width=3, max_depth=5):
-        super().__init__(llm, tools)
-        self.beam_width = beam_width  # 束搜索宽度
-        self.max_depth = max_depth
-    
-    def run(self, task: str) -> str:
-        # 创建根节点
-        root = ToTNode(thought=f"任务：{task}", score=0.0)
-        
-        # 束搜索
-        current_level = [root]
-        
-        for depth in range(self.max_depth):
-            next_level = []
-            
-            for node in current_level:
-                # 生成子节点（多种思考方向）
-                children = self._generate_thoughts(node)
-                
-                # 评估每个子节点
-                for child in children:
-                    child.score = self._evaluate(child)
-                    node.children.append(child)
-                    next_level.append(child)
-            
-            # 保留 top-k 节点
-            next_level.sort(reverse=True)
-            current_level = next_level[:self.beam_width]
-            
-            # 检查是否有节点完成任务
-            for node in current_level:
-                if self._is_complete(node):
-                    return self._extract_answer(node)
-        
-        # 返回最佳节点的答案
-        best_node = max(current_level, key=lambda x: x.score)
-        return self._extract_answer(best_node)
-    
-    def _generate_thoughts(self, node: ToTNode) -> List[ToTNode]:
-        """生成多种可能的下一步思考"""
-        prompt = f"""当前思考：{node.thought}
-
-请生成 3 种不同的下一步思考方向：
-"""
-        response = self.llm.generate(prompt)
-        thoughts = self._parse_thoughts(response)
-        
-        return [ToTNode(t, score=0.0, parent=node) for t in thoughts]
-    
-    def _evaluate(self, node: ToTNode) -> float:
-        """评估思考节点的质量"""
-        prompt = f"""评估以下思考的质量（0-1 分）：
-{node.thought}
-
-评分标准：
-- 逻辑性：思考是否合理
-- 进展性：是否向目标靠近
-- 可行性：是否可以执行
-
-分数："""
-        response = self.llm.generate(prompt)
-        score = float(response.strip())
-        return score
-```
-
----
-
-#### ✅ 实践项目：规划模块实现
-
-```python
-"""
-项目：实现支持 CoT 和 ToT 的规划模块
-要求：
-1. 实现 CoT 思考链
-2. 实现 ToT 束搜索
-3. 在复杂任务上测试（如多步骤研究任务）
-4. 对比 CoT 和 ToT 的效果
-"""
-
-# 学员完成
-```
-
-</details>
-
----
-
-### 7.5 自进化 Agent ⭐（2 周）
-
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### 反射循环（Reflection Loop）
-
-```
-自进化的核心：从经验中学习
-
-执行循环：
-┌─────────────────────────────────────────┐
-│                                         │
-│  1. 执行任务                            │
-│     ↓                                   │
-│  2. 观察结果（成功/失败）                │
-│     ↓                                   │
-│  3. 反思分析                            │
-│     - 什么做得好？                       │
-│     - 什么可以改进？                     │
-│     - 学到了什么？                       │
-│     ↓                                   │
-│  4. 更新策略                            │
-│     - 修改 Prompt                        │
-│     - 保存新技能                         │
-│     - 调整参数                          │
-│     ↓                                   │
-│  5. 下次任务使用改进后的策略             │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-#### 反思实现
-
-```python
-import json
-from datetime import datetime
-
-@dataclass
-class Experience:
-    """经验记录"""
-    task: str
-    actions: List[Dict]
-    result: str
-    success: bool
-    reflection: Optional[str] = None
-    lesson: Optional[str] = None
-
-class ReflectiveAgent(BaseAgent):
-    """支持反思的自进化 Agent"""
-    
-    def __init__(self, llm, tools=None):
-        super().__init__(llm, tools)
-        self.experiences = []  # 经验库
-        self.skills = []       # 技能库
-        self.prompt_versions = []  # Prompt 版本历史
-        
-    def run(self, task: str) -> str:
-        # 记录开始
-        experience = Experience(
-            task=task,
-            actions=[],
-            result="",
-            success=False
-        )
-        
-        # 执行任务
-        result = super().run(task)
-        experience.result = result
-        experience.success = "失败" not in result
-        
-        # 反思
-        reflection = self._reflect(experience)
-        experience.reflection = reflection
-        
-        # 提取教训
-        lesson = self._extract_lesson(experience)
-        experience.lesson = lesson
-        
-        # 保存经验
-        self.experiences.append(experience)
-        
-        # 更新技能库
-        if experience.success and lesson:
-            self._add_skill(task, lesson)
-        
-        # 更新 Prompt
-        self._update_prompt(reflection)
-        
-        return result
-    
-    def _reflect(self, experience: Experience) -> str:
-        """反思：分析成功或失败的原因"""
-        prompt = f"""请反思以下任务的执行过程：
-
-任务：{experience.task}
-结果：{experience.result}
-成功：{experience.success}
-
-请分析：
-1. 什么做得好？
-2. 什么可以改进？
-3. 如果重来，会采取什么不同的策略？
-
-反思："""
-        
-        return self.llm.generate(prompt)
-    
-    def _extract_lesson(self, experience: Experience) -> str:
-        """从反思中提取可复用的教训"""
-        if not experience.reflection:
-            return ""
-        
-        prompt = f"""从以下反思中提取可复用的经验教训：
-
-{experience.reflection}
-
-用一句话总结核心教训："""
-        
-        return self.llm.generate(prompt)
-    
-    def _add_skill(self, task_type: str, skill: str):
-        """添加新技能到技能库"""
-        self.skills.append({
-            "task_type": task_type,
-            "skill": skill,
-            "created_at": datetime.now().isoformat()
-        })
-    
-    def _update_prompt(self, reflection: str):
-        """根据反思更新系统 Prompt"""
-        # 记录 Prompt 版本
-        self.prompt_versions.append({
-            "version": len(self.prompt_versions),
-            "reflection": reflection,
-            "updated_at": datetime.now().isoformat()
-        })
-        
-        # 实际应用中，这里会更新系统 Prompt
-        # 例如添加新的指导原则
-    
-    def get_similar_experiences(self, task: str, top_k=3) -> List[Experience]:
-        """检索相似任务的历史经验"""
-        # 简单实现：按任务类型匹配
-        # 实际可用向量检索
-        return self.experiences[:top_k]
-    
-    def run_with_experience(self, task: str) -> str:
-        """利用历史经验执行任务"""
-        # 检索相似经验
-        similar = self.get_similar_experiences(task)
-        
-        if similar:
-            # 在 Prompt 中加入历史经验
-            self.memory.append({
-                "role": "system",
-                "content": f"历史经验：{[e.lesson for e in similar if e.lesson]}"
-            })
-        
-        return self.run(task)
-```
-
----
-
-#### 技能库管理
-
-```python
-class SkillLibrary:
-    """技能库管理"""
-    
-    def __init__(self, storage_path: str = "skills.json"):
-        self.storage_path = storage_path
-        self.skills = self._load()
-    
-    def _load(self) -> List[Dict]:
-        """加载技能库"""
-        try:
-            with open(self.storage_path, 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return []
-    
-    def _save(self):
-        """保存技能库"""
-        with open(self.storage_path, 'w') as f:
-            json.dump(self.skills, f, ensure_ascii=False, indent=2)
-    
-    def add_skill(self, task_pattern: str, solution: str, tags: List[str] = None):
-        """添加新技能"""
-        skill = {
-            "id": len(self.skills) + 1,
-            "task_pattern": task_pattern,
-            "solution": solution,
-            "tags": tags or [],
-            "usage_count": 0,
-            "success_rate": 1.0,
-            "created_at": datetime.now().isoformat()
-        }
-        self.skills.append(skill)
-        self._save()
-    
-    def search_skills(self, query: str) -> List[Dict]:
-        """搜索相关技能"""
-        # 简单关键词匹配
-        results = []
-        for skill in self.skills:
-            if query.lower() in skill["task_pattern"].lower():
-                results.append(skill)
-        return sorted(results, key=lambda x: x["usage_count"], reverse=True)
-    
-    def update_skill_stats(self, skill_id: int, success: bool):
-        """更新技能使用统计"""
-        for skill in self.skills:
-            if skill["id"] == skill_id:
-                skill["usage_count"] += 1
-                # 移动平均更新成功率
-                skill["success_rate"] = (
-                    skill["success_rate"] * (skill["usage_count"] - 1) + 
-                    (1 if success else 0)
-                ) / skill["usage_count"]
-                self._save()
-                break
-    
-    def get_top_skills(self, limit: int = 10) -> List[Dict]:
-        """获取最常用的技能"""
-        return sorted(
-            self.skills, 
-            key=lambda x: x["usage_count"] * x["success_rate"],
-            reverse=True
-        )[:limit]
-
-# 使用示例
-skill_lib = SkillLibrary()
-
-# 添加技能
-skill_lib.add_skill(
-    task_pattern="搜索并分析",
-    solution="1. 先搜索获取信息 2. 提取关键数据 3. 对比分析 4. 生成报告",
-    tags=["搜索", "分析", "报告"]
+from langchain.agents import initialize_agent, Tool
+from langchain.chat_models import ChatOpenAI
+
+# 定义工具
+def search_weather(city):
+    """查询天气"""
+    return f"{city}今天晴朗，气温 25°C"
+
+def book_flight(from_city, to_city):
+    """预订机票"""
+    return f"已预订从{from_city}到{to_city}的机票"
+
+tools = [
+    Tool(name="Weather", func=search_weather, description="查询城市天气"),
+    Tool(name="Flight", func=book_flight, description="预订机票")
+]
+
+# 初始化 Agent
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+agent = initialize_agent(
+    tools,
+    llm,
+    agent="zero-shot-react-description",
+    verbose=True
 )
 
-# 搜索技能
-related = skill_lib.search_skills("分析报告")
-print(f"找到 {len(related)} 个相关技能")
+# 使用
+response = agent.run("帮我规划从上海到北京的旅行，包括天气和机票")
+print(response)
 ```
+
+</div>
+
+### Chain of Thought（CoT）
+
+<div class="formula-box">
+
+```
+Prompt 示例：
+
+"小明有 5 个苹果，给了小红 2 个，又买了 3 个，现在有几个？
+请逐步思考。"
+
+效果：
+- 减少计算错误
+- 提高复杂任务准确率
+- 让推理过程可解释
+```
+
+</div>
+
+### Tree of Thoughts（ToT）
+
+<div class="formula-box">
+
+```
+核心思想：
+1. 生成多个思考路径
+2. 评估每条路径
+3. 选择最优路径
+4. 深度优先或广度优先搜索
+
+示例：
+写作任务：
+- 思路 1：按时间顺序
+- 思路 2：按重要性
+- 思路 3：按主题分类
+  ↓
+评估 → 选择思路 2 → 展开写作
+```
+
+</div>
 
 ---
 
-#### ✅ 实践项目：自进化 Agent
+## 7.3 工具使用
+
+### Function Calling
+
+<div class="formula-box">
+
+```
+OpenAI Function Calling：
+
+{
+  "name": "get_weather",
+  "description": "查询城市天气",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "city": {"type": "string", "description": "城市名"}
+    },
+    "required": ["city"]
+  }
+}
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
-"""
-项目：实现完整的自进化 Agent
-要求：
-1. 实现反思循环
-2. 实现技能库管理
-3. 在多个任务上运行，观察进化效果
-4. 可视化成功率提升曲线
-"""
+from openai import OpenAI
+import json
 
-# 学员完成
+client = OpenAI(api_key="your-api-key")
+
+# 定义函数
+def get_weather(city):
+    """查询城市天气"""
+    weather_data = {
+        "北京": "晴朗，25°C",
+        "上海": "多云，28°C",
+        "广州": "小雨，30°C"
+    }
+    return weather_data.get(city, "未知城市")
+
+# 定义函数 schema
+functions = [
+    {
+        "name": "get_weather",
+        "description": "查询城市天气",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "城市名，如'北京'、'上海'"
+                }
+            },
+            "required": ["city"]
+        }
+    }
+]
+
+# 调用 LLM
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "北京今天天气怎么样？"}
+    ],
+    functions=functions,
+    function_call="auto"
+)
+
+# 处理函数调用
+if response.choices[0].finish_reason == "function_call":
+    function_name = response.choices[0].message.function_call.name
+    function_args = json.loads(response.choices[0].message.function_call.arguments)
+    
+    # 执行函数
+    result = get_weather(**function_args)
+    
+    # 将结果返回给 LLM
+    second_response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "user", "content": "北京今天天气怎么样？"},
+            {"role": "assistant", "content": response.choices[0].message.content},
+            {"role": "function", "name": "get_weather", "content": result},
+        ]
+    )
+    
+    print(second_response.choices[0].message.content)
 ```
 
-</details>
+</div>
 
----
+### 代码执行
 
-### 7.6 多 Agent 协作（1 周）
-
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### 多 Agent 架构
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     多 Agent 协作系统                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│                    ┌─────────────┐                             │
-│                    │  Coordinator│  ← 协调者                    │
-│                    │  (管理者)    │                             │
-│                    └──────┬──────┘                             │
-│                           │                                     │
-│         ┌─────────────────┼─────────────────┐                  │
-│         │                 │                 │                  │
-│         ▼                 ▼                 ▼                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│  │  Researcher │  │   Coder     │  │   Writer    │            │
-│  │  (研究员)   │  │  (程序员)   │  │  (写手)     │            │
-│  │             │  │             │  │             │            │
-│  │ • 搜索信息  │  │ • 编写代码  │  │ • 撰写报告  │            │
-│  │ • 收集数据  │  │ • 调试程序  │  │ • 编辑文档  │            │
-│  └─────────────┘  └─────────────┘  └─────────────┘            │
-│                                                                 │
-│  协作流程：                                                      │
-│  1. Coordinator 接收任务，分解给各 Agent                          │
-│  2. 各 Agent 并行执行，共享中间结果                              │
-│  3. Coordinator 汇总结果，生成最终输出                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 多 Agent 实现
+<div class="formula-box">
 
 ```python
-from enum import Enum
+from langchain.agents import create_python_agent
+from langchain.python import PythonREPL
+from langchain.chat_models import ChatOpenAI
 
-class AgentRole(Enum):
-    COORDINATOR = "coordinator"
-    RESEARCHER = "researcher"
-    CODER = "coder"
-    WRITER = "writer"
-    REVIEWER = "reviewer"
+# 创建 Python Agent
+agent = create_python_agent(
+    llm=ChatOpenAI(model="gpt-4"),
+    tool=PythonREPL(),
+    verbose=True
+)
 
-class MultiAgentSystem:
-    """多 Agent 协作系统"""
-    
-    def __init__(self, llm):
-        self.llm = llm
-        self.agents = {}
-        self.message_queue = []
-        
-    def add_agent(self, role: AgentRole, agent: BaseAgent):
-        """添加 Agent 到系统"""
-        self.agents[role] = agent
-    
-    def run(self, task: str) -> str:
-        """执行协作任务"""
-        # 1. 协调者分解任务
-        coordinator = self.agents[AgentRole.COORDINATOR]
-        subtasks = coordinator.decompose_task(task)
-        
-        # 2. 分配给各 Agent
-        results = {}
-        for subtask in subtasks:
-            agent_role = self._select_agent(subtask)
-            agent = self.agents[agent_role]
-            results[subtask.id] = agent.run(subtask.description)
-        
-        # 3. 汇总结果
-        final_result = coordinator.synthesize_results(results)
-        return final_result
-    
-    def _select_agent(self, subtask) -> AgentRole:
-        """根据子任务选择合适的 Agent"""
-        if "搜索" in subtask.description or "研究" in subtask.description:
-            return AgentRole.RESEARCHER
-        elif "代码" in subtask.description or "编程" in subtask.description:
-            return AgentRole.CODER
-        elif "报告" in subtask.description or "文章" in subtask.description:
-            return AgentRole.WRITER
-        else:
-            return AgentRole.COORDINATOR
-
-# 专用 Agent 实现
-class ResearcherAgent(BaseAgent):
-    """研究员 Agent"""
-    def __init__(self, llm):
-        super().__init__(llm, tools={"search": search_web})
-
-class CoderAgent(BaseAgent):
-    """程序员 Agent"""
-    def __init__(self, llm):
-        super().__init__(llm, tools={"code": execute_code, "file_write": write_file})
-
-class WriterAgent(BaseAgent):
-    """写手 Agent"""
-    def __init__(self, llm):
-        super().__init__(llm, tools={"file_read": read_file, "file_write": write_file})
-
-# 使用示例
-system = MultiAgentSystem(llm)
-system.add_agent(AgentRole.COORDINATOR, CoordinatorAgent(llm))
-system.add_agent(AgentRole.RESEARCHER, ResearcherAgent(llm))
-system.add_agent(AgentRole.CODER, CoderAgent(llm))
-system.add_agent(AgentRole.WRITER, WriterAgent(llm))
-
-result = system.run("研究 AI 发展趋势，编写代码示例，生成报告")
+# 使用
+response = agent.run("请计算 1 到 100 的平方和，并画出折线图")
+print(response)
 ```
 
----
+</div>
 
-#### ✅ 实践项目：多 Agent 协作系统
+### API 调用
+
+<div class="formula-box">
 
 ```python
-"""
-项目：构建多 Agent 协作系统
-要求：
-1. 实现至少 3 种角色的 Agent
-2. 实现任务分解和结果汇总
-3. 完成一个复杂任务（如"研究 + 编码 + 报告"）
-4. 分析协作效率
-"""
+from langchain.tools import Tool
+import requests
 
-# 学员完成
+# 自定义 API 工具
+def search_web(query):
+    """搜索互联网"""
+    url = f"https://api.example.com/search?q={query}"
+    response = requests.get(url)
+    return response.json()["result"]
+
+def calculate(expression):
+    """计算数学表达式"""
+    try:
+        return str(eval(expression))
+    except:
+        return "计算错误"
+
+tools = [
+    Tool(
+        name="WebSearch",
+        func=search_web,
+        description="搜索互联网获取信息"
+    ),
+    Tool(
+        name="Calculator",
+        func=calculate,
+        description="计算数学表达式"
+    )
+]
 ```
 
-</details>
+</div>
 
 ---
 
-## 📊 进度追踪
+## 7.4 记忆机制
 
-### 打卡表
+### 短期记忆
 
-| 章节 | 周数 | 已完成 | 进度 | 状态 |
-|------|------|--------|------|------|
-| 7.1 Agent 基础 | 1 周 | - | 0% | ⏳ |
-| 7.2 规划能力 | 2 周 | - | 0% | ⏳ |
-| 7.3 工具使用 | 1 周 | - | 0% | ⏳ |
-| 7.4 记忆系统 | 1 周 | - | 0% | ⏳ |
-| 7.5 自进化 Agent | 2 周 | - | 0% | ⏳ |
-| 7.6 多 Agent 协作 | 1 周 | - | 0% | ⏳ |
+<div class="formula-box">
 
-### 项目清单
+```
+短期记忆 = 对话上下文
 
-- [ ] 基础 Agent 框架
-- [ ] CoT/ToT规划模块
-- [ ] 工具集成（5+ 工具）
-- [ ] 完整记忆系统
-- [ ] 自进化 Agent
-- [ ] 多 Agent 协作系统
+实现：
+- 保存历史对话
+- 限制上下文长度
+- 滑动窗口
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
+from langchain.chat_models import ChatOpenAI
+
+# 对话记忆
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True
+)
+
+# 创建对话链
+chain = ConversationalRetrievalChain.from_llm(
+    llm=ChatOpenAI(model="gpt-3.5-turbo"),
+    retriever=vectorstore.as_retriever(),
+    memory=memory
+)
+
+# 对话
+chat_history = []
+while True:
+    query = input("用户：")
+    if query == "exit":
+        break
+    
+    result = chain({"question": query, "chat_history": chat_history})
+    print(f"助手：{result['answer']}")
+    
+    chat_history.append((query, result['answer']))
+```
+
+</div>
+
+### 长期记忆
+
+<div class="formula-box">
+
+```
+长期记忆 = 向量数据库
+
+实现：
+- 将对话嵌入向量
+- 存储到向量数据库
+- 检索相关记忆
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from langchain.memory import VectorStoreRetrieverMemory
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Chroma
+
+# 创建向量数据库记忆
+embeddings = OpenAIEmbeddings()
+vectorstore = Chroma(embedding_function=embeddings)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+
+memory = VectorStoreRetrieverMemory(retriever=retriever)
+
+# 保存记忆
+memory.save_context(
+    {"input": "用户喜欢 Python"},
+    {"output": "好的，我记住了"}
+)
+
+memory.save_context(
+    {"input": "用户是软件工程师"},
+    {"output": "明白了"}
+)
+
+# 检索记忆
+memories = memory.load_memory_variables({"input": "用户想学什么编程"})
+print(memories)
+```
+
+</div>
 
 ---
 
-> _Agent 是 AI 的终极形态 —— 不仅能思考，还能行动；不仅能执行，还能进化。_
-> 
-> _—— 悟空_
+## 7.5 多 Agent 协作
+
+### AutoGen 框架
+
+<div class="formula-box">
+
+```python
+from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+
+# 配置
+config_list = [{"model": "gpt-4", "api_key": "your-api-key"}]
+
+# 创建 Agent
+coder = AssistantAgent(
+    name="Coder",
+    system_message="你是资深软件工程师，负责编写代码。",
+    llm_config={"config_list": config_list}
+)
+
+reviewer = AssistantAgent(
+    name="Reviewer",
+    system_message="你是代码审查专家，负责审查代码质量。",
+    llm_config={"config_list": config_list}
+)
+
+user_proxy = UserProxyAgent(
+    name="User",
+    code_execution_config={"work_dir": "coding"}
+)
+
+# 群聊
+groupchat = GroupChat(
+    agents=[coder, reviewer, user_proxy],
+    messages=[],
+    max_round=10
+)
+
+manager = GroupChatManager(
+    groupchat=groupchat,
+    llm_config={"config_list": config_list}
+)
+
+# 开始协作
+user_proxy.initiate_chat(
+    manager,
+    message="请帮我写一个快速排序算法，并审查代码质量"
+)
+```
+
+</div>
+
+### 角色分工
+
+<div class="formula-box">
+
+```
+典型角色：
+
+1. Manager（管理者）
+   - 任务分配
+   - 进度控制
+   - 质量把关
+
+2. Coder（程序员）
+   - 编写代码
+   - 调试修复
+
+3. Reviewer（审查者）
+   - 代码审查
+   - 提出改进建议
+
+4. Researcher（研究员）
+   - 信息搜集
+   - 资料整理
+
+5. Writer（写作者）
+   - 文档编写
+   - 内容创作
+```
+
+</div>
+
+---
+
+## 7.6 实战项目
+
+### 项目 1：智能研究助手
+
+<div class="formula-box">
+
+```python
+from langchain.agents import Tool
+from langchain.utilities import DuckDuckGoSearchAPIWrapper
+from langchain.chat_models import ChatOpenAI
+
+# 工具定义
+search = DuckDuckGoSearchAPIWrapper()
+
+tools = [
+    Tool(
+        name="Search",
+        func=search.run,
+        description="搜索互联网获取最新信息"
+    ),
+    Tool(
+        name="Summarize",
+        func=lambda x: llm.predict(f"总结以下内容：{x}"),
+        description="总结长文本"
+    )
+]
+
+# 创建研究 Agent
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+researcher = initialize_agent(
+    tools,
+    llm,
+    agent="zero-shot-react-description",
+    verbose=True
+)
+
+# 使用
+topic = "人工智能的最新进展"
+research_plan = f"""
+请研究"{topic}"，包括：
+1. 搜索最新论文
+2. 总结核心贡献
+3. 分析技术趋势
+"""
+
+result = researcher.run(research_plan)
+print(result)
+```
+
+</div>
+
+### 项目 2：自动化数据分析
+
+<div class="formula-box">
+
+```python
+from autogen import AssistantAgent, UserProxyAgent
+
+# 配置
+config_list = [{"model": "gpt-4", "api_key": "your-api-key"}]
+
+# 数据分析师 Agent
+data_analyst = AssistantAgent(
+    name="DataAnalyst",
+    system_message="""你是数据科学家，负责数据分析。
+你可以执行 Python 代码进行分析。
+请使用 pandas、matplotlib 等库。""",
+    llm_config={"config_list": config_list}
+)
+
+# 用户代理
+user_proxy = UserProxyAgent(
+    name="User",
+    code_execution_config={"work_dir": "data_analysis"}
+)
+
+# 任务
+task = """
+请分析 sales_data.csv 文件：
+1. 加载数据
+2. 数据探索（形状、列名、统计信息）
+3. 可视化销售趋势
+4. 找出最畅销的产品
+"""
+
+# 执行
+user_proxy.initiate_chat(data_analyst, message=task)
+```
+
+</div>
+
+### 项目 3：智能客服系统
+
+<div class="formula-box">
+
+```python
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.memory import ConversationBufferMemory
+
+# 工具
+tools = [
+    Tool(
+        name="KnowledgeBase",
+        func=search_knowledge_base,
+        description="搜索知识库获取产品信息"
+    ),
+    Tool(
+        name="OrderLookup",
+        func=lookup_order,
+        description="查询订单状态"
+    ),
+    Tool(
+        name="TicketCreate",
+        func=create_support_ticket,
+        description="创建客服工单"
+    )
+]
+
+# 记忆
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True
+)
+
+# Agent
+agent = create_openai_functions_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    memory=memory,
+    verbose=True
+)
+
+# 客服对话
+while True:
+    user_input = input("客户：")
+    if user_input == "exit":
+        break
+    
+    response = agent_executor({"input": user_input})
+    print(f"客服：{response['output']}")
+```
+
+</div>
+
+---
+
+## 📚 学习资源
+
+### 框架文档
+
+- [LangChain](https://python.langchain.com/) - Agent 开发框架
+- [AutoGen](https://microsoft.github.io/autogen/) - 多 Agent 协作
+- [LlamaIndex](https://www.llamaindex.ai/) - 数据连接
+
+### 论文
+
+- [ReAct: Synergizing Reasoning and Acting](https://arxiv.org/abs/2210.03629)
+- [Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
+- [Tree of Thoughts: Deliberate Problem Solving](https://arxiv.org/abs/2305.10601)
+
+---
+
+## ✅ 学习检查清单
+
+- [ ] 理解 Agent 核心架构
+- [ ] 掌握任务分解方法
+- [ ] 掌握 Function Calling
+- [ ] 掌握代码执行
+- [ ] 掌握短期记忆与长期记忆
+- [ ] 了解多 Agent 协作
+- [ ] 掌握 LangChain 框架
+- [ ] 完成至少 2 个实战项目
+
+---
+
+*最后更新：2026-04-22*

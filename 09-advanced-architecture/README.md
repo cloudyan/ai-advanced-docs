@@ -1,544 +1,579 @@
-# 第 9 章：前沿架构与技术（8-10 周）
+# 阶段 9：高级架构
 
-> 追踪 AI 最前沿 —— 从高效注意力到多模态大模型
-> 
-> _学习周期：8-10 周 | 难度：⭐⭐⭐⭐⭐ | 重要性：⭐⭐⭐⭐_
+_前沿模型架构与研究_
 
 ---
 
-## 📖 本章概述
+## 📖 学习指南
 
-### 前沿技术全景图
+**前置知识**：
+- ✅ Transformer 架构
+- ✅ 深度学习基础
+- ✅ LLM 应用基础
 
-```
-2023-2024 AI 前沿技术：
+**学习目标**：
+- ✅ 理解 MoE 混合专家架构
+- ✅ 掌握多模态模型原理
+- ✅ 了解新架构（Mamba、RWKV）
+- ✅ 了解世界模型
+- ✅ 跟进前沿研究
 
-┌─────────────────────────────────────────────────────────────────┐
-│                    前沿技术分类                                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ 1. 高效注意力                                                   │
-│    • FlashAttention: IO 感知注意力，2-4 倍加速                    │
-│    • Sparse Attention: 稀疏注意力，O(n)复杂度                   │
-│    • Linear Attention: 线性注意力                               │
-│                                                                 │
-│ 2. 长上下文处理                                                 │
-│    • RoPE: 旋转位置编码，支持外推                               │
-│    • Context Extension: 上下文扩展技术                          │
-│    • Window Attention: 窗口注意力                               │
-│                                                                 │
-│ 3. 多模态大模型                                                 │
-│    • CLIP: 图文对比学习                                         │
-│    • LLaVA: 视觉语言助手                                        │
-│    • GPT-4V: 多模态理解                                         │
-│                                                                 │
-│ 4. 推理加速架构                                                 │
-│    • Speculative Decoding: 推测解码                             │
-│    • Medusa: 多 token 预测                                      │
-│    • Lookahead: 前瞻解码                                       │
-│                                                                 │
-│ 5. 高效架构                                                     │
-│    • MoE: 混合专家模型                                          │
-│    • RWKV: RNN+Transformer                                      │
-│    • Mamba: 状态空间模型                                        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 本章学习目标
-
-学完本章后，你将能够：
-- ✅ 理解 FlashAttention 的 IO 优化原理
-- ✅ 实现 RoPE 位置编码
-- ✅ 构建多模态 VQA 系统
-- ✅ 使用推测解码加速推理
-- ✅ 追踪并复现前沿论文
+**预计时间**：30 天
 
 ---
 
-## 📚 学习大纲
+## 9.1 MoE 混合专家
 
-### 9.1 高效注意力（2 周）
+### 什么是 MoE？
 
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### FlashAttention 原理
+<div class="formula-box">
 
 ```
-传统注意力的问题：
-1. 需要存储 N×N 的注意力矩阵 → O(N²) 显存
-2. 多次 HBM 访问（高带宽内存）→ IO 瓶颈
+MoE（Mixture of Experts）= 多个专家网络 + 门控机制
 
-FlashAttention 的优化：
-1. 分块计算（Tiling）：不存储完整注意力矩阵
-2. 重计算（Recomputation）：用计算换显存
-3. IO 感知：最小化 HBM 访问次数
+核心思想：
+- 不同输入激活不同专家
+- 稀疏激活，减少计算
+- 模型容量大，推理成本低
 
-效果：
-- 显存：从 O(N²) 降到 O(N)
-- 速度：提升 2-4 倍
-- 支持更长序列
+结构：
+输入 → 门控网络 G(x) → 选择专家
+        ↓
+    [专家 1] [专家 2] ... [专家 n]
+        ↓
+    加权输出：y = Σ G(x)ᵢ × Eᵢ(x)
 ```
 
-#### FlashAttention 使用
+</div>
 
-```python
-# 使用 FlashAttention 2
-from flash_attn import flash_attn_func
+### Switch Transformer
 
-# 输入：Q, K, V
-# Q, K, V: (batch, seq_len, num_heads, head_dim)
-q = torch.randn(2, 1024, 8, 128, device='cuda', dtype=torch.float16)
-k = torch.randn(2, 1024, 8, 128, device='cuda', dtype=torch.float16)
-v = torch.randn(2, 1024, 8, 128, device='cuda', dtype=torch.float16)
+<div class="formula-box">
 
-# FlashAttention
-output = flash_attn_func(q, k, v, dropout_p=0.0)
+```
+创新点：
+- 简化 MoE 路由
+- 每个 token 只选择 1 个专家
+- 训练效率提升
 
-# 对比标准注意力
-def standard_attention(Q, K, V):
-    d_k = Q.size(-1)
-    scores = torch.matmul(Q, K.transpose(-2, -1)) / d_k**0.5
-    attn_weights = torch.softmax(scores, dim=-1)
-    output = torch.matmul(attn_weights, V)
-    return output
+公式：
+y = E_{expert}(x)
+expert = argmax_i G(x)_i
 
-# 性能对比
-import time
-
-# FlashAttention
-start = time.time()
-for _ in range(100):
-    output_flash = flash_attn_func(q, k, v, dropout_p=0.0)
-torch.cuda.synchronize()
-print(f"FlashAttention: {time.time() - start:.4f}s")
-
-# Standard Attention
-start = time.time()
-for _ in range(100):
-    output_std = standard_attention(q, k, v)
-torch.cuda.synchronize()
-print(f"Standard Attention: {time.time() - start:.4f}s")
-
-# 显存对比
-print(f"FlashAttention 显存：{torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+规模：
+- 1.6 万亿参数
+- 训练速度提升 4 倍
 ```
 
-#### 稀疏注意力（Sparse Attention）
+</div>
 
-```python
-"""
-稀疏注意力模式：
+### Mixtral 8x7B
 
-1. 固定模式稀疏：
-   ┌─────────────┐
-   │█░░░░░░░░░░░░│  ← 局部窗口
-   │░█░░░░░░░░░░░│
-   │░░█░░░░░░░░░░│
-   │░░░█░░░░░░░░░│
-   └─────────────┘
+<div class="formula-box">
 
-2.  strides 稀疏：
-   ┌─────────────┐
-   │█░█░█░█░█░█░█│  ← 每隔 k 个关注
-   │░█░█░█░█░█░█░│
-   │█░█░█░█░█░█░█│
-   └─────────────┘
-
-3. 随机稀疏：
-   ┌─────────────┐
-   │█░░█░░░█░░░░░│  ← 随机选择
-   │░░█░░░█░░░█░░│
-   │░█░░░█░░░█░░░│
-   └─────────────┘
+```
+架构：
+- 8 个专家网络
+- 每个 token 激活 2 个专家
+- 7B × 8 = 56B 总参数
+- 每次激活 14B 参数
 
 优势：
-- 复杂度从 O(N²) 降到 O(N) 或 O(N log N)
-- 支持超长序列（100K+）
-"""
-
-# 使用 Longformer 的稀疏注意力
-from transformers import LongformerModel
-
-model = LongformerModel.from_pretrained('allenai/longformer-base-4096')
-# 支持 4096+ 的序列长度
+- 性能接近 GPT-4
+- 推理速度快
+- 开源免费
 ```
 
-</details>
+</div>
 
----
-
-### 9.2 长上下文处理（2 周）
-
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### RoPE 旋转位置编码
+<div class="formula-box">
 
 ```python
-"""
-RoPE（Rotary Positional Embedding）原理：
-
-传统位置编码：
-- 绝对位置编码：学习或固定的位置向量
-- 问题：外推能力差（训练 512，推理 1024 就失效）
-
-RoPE 的核心思想：
-- 用旋转矩阵编码相对位置
-- 保持注意力分数的相对位置信息
-- 优秀的外推能力
-
-数学公式：
-对于位置 m 和 n 的 token：
-Q_m = R(m) · q_m  （旋转 m 角度）
-K_n = R(n) · k_n  （旋转 n 角度）
-
-注意力分数：Q_m · K_n = q_m^T · R(n-m) · k_n
-只依赖于相对位置 (n-m)！
-"""
-
+# MoE 层简单实现
 import torch
+import torch.nn as nn
 
-def apply_rope(q, k, freqs_cis):
-    """
-    应用 RoPE
+class MoELayer(nn.Module):
+    def __init__(self, d_model, num_experts, top_k=2):
+        super().__init__()
+        self.num_experts = num_experts
+        self.top_k = top_k
+        
+        # 门控网络
+        self.gate = nn.Linear(d_model, num_experts)
+        
+        # 专家网络
+        self.experts = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(d_model, d_model * 4),
+                nn.ReLU(),
+                nn.Linear(d_model * 4, d_model)
+            )
+            for _ in range(num_experts)
+        ])
     
-    参数：
-    - q, k: (batch, seq_len, num_heads, head_dim)
-    - freqs_cis: 预计算的频率复数 (seq_len, head_dim/2)
-    """
-    # 转换为复数
-    q_complex = torch.view_as_complex(q.float().reshape(*q.shape[:-1], -1, 2))
-    k_complex = torch.view_as_complex(k.float().reshape(*k.shape[:-1], -1, 2))
-    
-    # 旋转（复数乘法）
-    q_rotated = q_complex * freqs_cis[:q.shape[1]].unsqueeze(1)
-    k_rotated = k_complex * freqs_cis[:k.shape[1]].unsqueeze(1)
-    
-    # 转回实数
-    q_out = torch.view_as_real(q_rotated).flatten(3)
-    k_out = torch.view_as_real(k_rotated).flatten(3)
-    
-    return q_out.type_as(q), k_out.type_as(k)
-
-def precompute_freqs_cis(dim, max_len, theta=10000.0):
-    """预计算 RoPE 频率"""
-    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
-    t = torch.arange(max_len)
-    freqs = torch.outer(t, freqs).float()
-    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # 复数
-    return freqs_cis
-
-# 测试
-freqs_cis = precompute_freqs_cis(dim=128, max_len=2048)
-q = torch.randn(2, 100, 8, 128)
-k = torch.randn(2, 100, 8, 128)
-q_rot, k_rot = apply_rope(q, k, freqs_cis)
-print(f"RoPE 后形状：q={q_rot.shape}, k={k_rot.shape}")
+    def forward(self, x):
+        # x: (batch, seq_len, d_model)
+        batch_size, seq_len, _ = x.shape
+        
+        # 门控分数
+        gate_scores = torch.softmax(self.gate(x), dim=-1)
+        
+        # 选择 top_k 专家
+        top_k_scores, top_k_indices = torch.topk(gate_scores, self.top_k, dim=-1)
+        
+        # 专家输出
+        output = torch.zeros_like(x)
+        
+        for i in range(self.num_experts):
+            # 找到选择专家 i 的位置
+            mask = (top_k_indices == i)
+            if mask.any():
+                # 专家处理
+                expert_output = self.experts[i](x[mask])
+                # 加权
+                output[mask] = expert_output * top_k_scores[mask][..., 0:1]
+        
+        return output
 ```
 
-#### 上下文扩展技术
-
-```python
-"""
-上下文扩展方法：
-
-1. 线性插值（Linear Interpolation）
-   - 训练时位置：0, 1, 2, ..., 511
-   - 推理时位置：0, 0.5, 1, 1.5, ..., 1023
-   - 简单有效，但有精度损失
-
-2. NTK 感知插值
-   - 基于 NTK（Neural Tangent Kernel）理论
-   - 动态调整不同频率的插值方式
-   - 更好的外推效果
-
-3. YaRN（Yet another RoPE scaling）
-   - 结合插值和微调
-   - 支持 128K+ 上下文
-"""
-
-# NTK 感知插值实现
-def ntK_interpolation(freqs_cis, scale_factor, original_max_len=4096):
-    """
-    NTK 感知位置编码插值
-    
-    参数：
-    - freqs_cis: 原始频率
-    - scale_factor: 扩展倍数（如 2 表示扩展到 2 倍）
-    - original_max_len: 原始最大长度
-    """
-    # 获取原始频率
-    freqs = torch.angle(freqs_cis)
-    
-    # NTK 调整
-    for i in range(len(freqs)):
-        if freqs[i] > original_max_len / (2 * torch.pi):
-            freqs[i] = freqs[i] / scale_factor
-    
-    # 重新构建复数
-    freqs_cis_scaled = torch.exp(1j * freqs)
-    return freqs_cis_scaled
-
-# 使用示例
-original_freqs = precompute_freqs_cis(128, 4096)
-extended_freqs = ntK_interpolation(original_freqs, scale_factor=4)
-# 现在支持 4096 * 4 = 16384 的上下文
-```
-
-</details>
+</div>
 
 ---
 
-### 9.3 多模态大模型（2 周）
+## 9.2 多模态模型
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### CLIP（对比语言 - 图像预训练）
 
-#### CLIP 原理
+<div class="formula-box">
 
 ```
-CLIP（Contrastive Language-Image Pre-training）：
-
 架构：
-┌─────────────┐    ┌─────────────┐
-│  图像编码器  │    │  文本编码器  │
-│  (ViT/RN)   │    │ (Transformer)│
-└──────┬──────┘    └──────┬──────┘
-       │                  │
-       ▼                  ▼
-   图像特征 (128 维)    文本特征 (128 维)
-       │                  │
-       └────────┬─────────┘
-                │
-          对比学习损失
-          
-训练目标：
-- 匹配的图文对：特征相似度高
-- 不匹配的图文对：特征相似度低
+- 图像编码器（ViT/ResNet）
+- 文本编码器（Transformer）
+- 对比学习
+
+训练：
+- 4 亿图像 - 文本对
+- 最大化匹配对的相似度
+- 最小化不匹配对的相似度
 
 应用：
 - 零样本图像分类
-- 图文检索
-- 多模态理解基础
-"""
+- 图像检索
+- 文生图（作为引导）
+```
 
-from transformers import CLIPProcessor, CLIPModel
+</div>
+
+<div class="formula-box">
+
+```python
+import clip
 import torch
 from PIL import Image
 
 # 加载模型
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model, preprocess = clip.load("ViT-B/32", device=device)
 
-# 图像编码
-image = Image.open("cat.jpg")
-image_inputs = processor(images=image, return_tensors="pt")
-image_features = model.get_image_features(**image_inputs)
+# 处理图像
+image = preprocess(Image.open("cat.jpg")).unsqueeze(0).to(device)
 
-# 文本编码
-text_inputs = processor(
-    text=["一只猫", "一只狗", "一辆车"],
-    return_tensors="pt",
-    padding=True
-)
-text_features = model.get_text_features(**text_inputs)
+# 处理文本
+text = clip.tokenize(["a cat", "a dog", "a bird"]).to(device)
 
-# 计算相似度
-image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+# 推理
+with torch.no_grad():
+    image_features = model.encode_image(image)
+    text_features = model.encode_text(text)
+    
+    # 计算相似度
+    similarity = (image_features @ text_features.T).softmax(dim=-1)
 
-similarity = (image_features @ text_features.T).softmax(dim=-1)
-print(f"相似度：{similarity}")
-# 输出：[[0.85, 0.10, 0.05]] - 最可能是猫
+print(f"猫：{similarity[0][0]:.2%}")
+print(f"狗：{similarity[0][1]:.2%}")
+print(f"鸟：{similarity[0][2]:.2%}")
 ```
 
-#### LLaVA 多模态对话
+</div>
 
-```python
-"""
-LLaVA（Large Language and Vision Assistant）：
+### Flamingo
+
+<div class="formula-box">
+
+```
+创新点：
+- 视觉 - 语言模型
+- 少样本学习
+- 交叉注意力注入视觉信息
 
 架构：
-┌─────────────┐    ┌─────────────┐
-│  视觉编码器  │    │  语言模型   │
-│  (CLIP ViT) │───▶│  (LLaMA)    │
-│             │    │             │
-└─────────────┘    └─────────────┘
-       │                   │
-       └───────────────────┘
-              投影层
+- 冻结的 LLM（语言）
+- 冻结的 ViT（视觉）
+- Perceiver Resampler（连接）
+
+能力：
+- 视觉问答
+- 图像描述
+- 少样本学习
+```
+
+</div>
+
+### LVM（Language Vision Model）
+
+<div class="formula-box">
+
+```
+代表模型：
+- LLaVA（Large Language and Vision Assistant）
+- MiniGPT-4
+- InstructBLIP
 
 特点：
-- 端到端多模态对话
-- 视觉问答（VQA）
-- 图像理解 + 语言生成
-"""
+- 端到端训练
+- 指令遵循
+- 多轮对话
 
-# 使用 LLaVA
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path, process_images
-from llava.conversation import conv_templates
-
-# 加载模型
-model_path = "llava-hf/llava-1.5-7b-hf"
-tokenizer, model, image_processor, max_length = load_pretrained_model(model_path)
-
-# 准备图像和对话
-image = Image.open("image.jpg")
-conv = conv_templates["vicuna_v1"].copy()
-
-# 第一轮：用户提问
-conv.append_message(conv.roles[0], "这张图片里有什么？")
-conv.append_message(conv.roles[1], None)
-prompt = conv.get_prompt()
-
-# 处理输入
-inputs = tokenizer([prompt], return_tensors="pt")
-image_tensor = process_images([image], image_processor, model.config)
-
-# 生成回答
-with torch.inference_mode():
-    output_ids = model.generate(
-        **inputs,
-        images=image_tensor,
-        max_new_tokens=512,
-        do_sample=True,
-        temperature=0.7
-    )
-
-response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-print(f"LLaVA 回答：{response}")
+应用：
+- 视觉对话
+- 图像理解
+- 文档分析
 ```
 
-</details>
+</div>
 
 ---
 
-### 9.4 推理加速架构（2 周）
+## 9.3 新架构探索
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### Mamba（状态空间模型）
 
-#### 推测解码（Speculative Decoding）
+<div class="formula-box">
 
 ```
-推测解码原理：
+核心创新：
+- 选择性状态空间
+- 线性复杂度 O(n)
+- 长序列建模
 
-传统解码：
-Token1 → Token2 → Token3 → Token4 → ...
-  ↓       ↓       ↓       ↓
-串行生成，慢
+对比 Transformer：
+- Transformer：O(n²) 复杂度
+- Mamba：O(n) 复杂度
+- 长序列优势明显
 
-推测解码：
-小模型（草稿）: Token1 → Token2 → Token3 → Token4
-                  ↓
-大模型（验证）:   一次性验证所有 token
-                  ↓
-              接受或拒绝
+应用：
+- 长文本处理
+- 时间序列
+- 基因组学
+```
+
+</div>
+
+### RWKV（循环 Transformer）
+
+<div class="formula-box">
+
+```
+创新点：
+- 结合 RNN 和 Transformer
+- 线性注意力
+- 恒定推理成本
 
 优势：
-- 如果小模型预测准确，可以一次生成多个 token
-- 加速比：2-4 倍（取决于接受率）
-"""
+- 训练并行（像 Transformer）
+- 推理高效（像 RNN）
+- 无序列长度限制
 
-# 使用 Transformers 的推测解码
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
-
-# 加载大小模型
-draft_model = AutoModelForCausalLM.from_pretrained("TinyLlama/TinyLlama-1.1B")
-target_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b")
-
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b")
-
-input_text = "人工智能的未来"
-inputs = tokenizer(input_text, return_tensors="pt")
-
-# 推测解码生成
-with torch.no_grad():
-    outputs = target_model.generate(
-        **inputs,
-        assistant_model=draft_model,  # 指定草稿模型
-        num_assistant_tokens=5,       # 每次生成 5 个草稿 token
-        max_new_tokens=50
-    )
-
-response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print(response)
+应用：
+- 长文本生成
+- 实时对话
+- 边缘设备部署
 ```
 
-#### Medusa 多 token 预测
+</div>
 
-```python
-"""
-Medusa 原理：
+### Hyena
 
-传统解码：
-每次生成 1 个 token → 需要 N 次前向传播
+<div class="formula-box">
 
-Medusa：
-- 添加多个解码头
-- 每个头预测不同位置的 token
-- 一次前向传播生成多个 token
+```
+核心思想：
+- 用卷积替代注意力
+- 次二次复杂度
+- 长距离依赖
+
+优势：
+- 比 Transformer 快 3 倍
+- 长序列性能更好
+- 内存效率更高
+```
+
+</div>
+
+---
+
+## 9.4 世界模型
+
+### 什么是世界模型？
+
+<div class="formula-box">
+
+```
+世界模型 = 对世界的内部表示 + 预测能力
+
+核心能力：
+1. 表征学习
+   - 理解物理规律
+   - 学习因果关系
+
+2. 预测
+   - 预测未来状态
+   - 反事实推理
+
+3. 规划
+   - 在内部模拟
+   - 选择最优行动
+```
+
+</div>
+
+### JePA（Joint-Embedding Predictive Architecture）
+
+<div class="formula-box">
+
+```
+Yann LeCun 提出
+
+核心思想：
+- 在表征空间预测
+- 不是预测像素
+- 学习抽象概念
 
 架构：
-        ┌─────────────┐
-        │  LLM Backbone│
-        └──────┬──────┘
-               │
-    ┌──────────┼──────────┐
-    │          │          │
-    ▼          ▼          ▼
- Head 0     Head 1     Head 2
-(t+1)      (t+2)      (t+3)
+- 编码器：输入 → 表征
+- 预测器：当前表征 → 未来表征
+- 损失：预测表征 vs 真实表征
 
-加速比：2-3 倍
-"""
-
-# Medusa 使用示例（伪代码）
-from medusa.model import MedusaModel
-
-model = MedusaModel.from_pretrained("FasterDecoding/medusa-7b")
-
-# Medusa 有多个解码头
-# head[0]: 预测下一个 token
-# head[1]: 预测下下个 token
-# head[2]: 预测下下下个 token
-
-outputs = model.generate(
-    input_ids,
-    medusa_num_heads=3,      # 3 个解码头
-    max_new_tokens=100
-)
+优势：
+- 忽略无关细节
+- 学习本质规律
+- 样本效率高
 ```
 
-</details>
+</div>
+
+### Genie（生成式世界模型）
+
+<div class="formula-box">
+
+```
+DeepMind 2024
+
+能力：
+- 从视频学习
+- 生成可交互环境
+- 作为智能体训练场
+
+应用：
+- 游戏 AI
+- 机器人训练
+- 自动驾驶模拟
+```
+
+</div>
 
 ---
 
-## 📊 进度追踪
+## 9.5 前沿研究
 
-### 打卡表
+### Sora（视频生成）
 
-| 章节 | 周数 | 已完成 | 进度 | 状态 |
-|------|------|--------|------|------|
-| 9.1 高效注意力 | 2 周 | - | 0% | ⏳ |
-| 9.2 长上下文 | 2 周 | - | 0% | ⏳ |
-| 9.3 多模态 | 2 周 | - | 0% | ⏳ |
-| 9.4 推理加速 | 2 周 | - | 0% | ⏳ |
+<div class="formula-box">
 
-### 项目清单
+```
+OpenAI 2024
 
-- [ ] FlashAttention 性能对比
-- [ ] RoPE 位置编码实现
-- [ ] CLIP 零样本分类
-- [ ] LLaVA 多模态对话
-- [ ] 推测解码加速实验
+创新点：
+- Diffusion Transformer
+- 时空联合建模
+- 1 分钟高质量视频
+
+能力：
+- 文本生成视频
+- 图像生成视频
+- 视频编辑
+
+技术：
+- 视觉 patch 化
+- 大规模预训练
+- 物理规律学习
+```
+
+</div>
+
+### Gemini（多模态）
+
+<div class="formula-box">
+
+```
+Google 2023
+
+特点：
+- 原生多模态
+- 从文本到多模态
+- 三种规模（Ultra/Pro/Nano）
+
+能力：
+- 文本理解
+- 图像理解
+- 视频理解
+- 代码生成
+```
+
+</div>
+
+### GPT-4o（多模态交互）
+
+<div class="formula-box">
+
+```
+OpenAI 2024
+
+创新点：
+- 端到端多模态
+- 实时语音交互
+- 情感理解
+
+能力：
+- 文本 + 图像 + 音频
+- 低延迟响应
+- 自然对话
+```
+
+</div>
 
 ---
 
-> _前沿是明天的基础，今天读懂论文，明天创造论文。_
-> 
-> _—— 悟空_
+## 9.6 实战项目
+
+### 项目 1：多模态问答系统
+
+<div class="formula-box">
+
+```python
+import clip
+import torch
+from PIL import Image
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+# 1. 加载 CLIP
+clip_model, preprocess = clip.load("ViT-B/32")
+
+# 2. 加载 LLM
+llm = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat")
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat")
+
+# 3. 多模态理解
+def multimodal_qa(image_path, question):
+    # 图像编码
+    image = preprocess(Image.open(image_path)).unsqueeze(0)
+    image_features = clip_model.encode_image(image)
+    
+    # 生成描述
+    image_description = generate_description(image_features)
+    
+    # 构建 prompt
+    prompt = f"""
+图像描述：{image_description}
+问题：{question}
+回答：
+"""
+    
+    # LLM 回答
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = llm.generate(**inputs, max_length=200)
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return answer
+
+# 使用
+answer = multimodal_qa("image.jpg", "这张图片里有什么？")
+print(answer)
+```
+
+</div>
+
+### 项目 2：长文本摘要（Mamba）
+
+<div class="formula-box">
+
+```python
+from mamba_ssm import MambaLMHeadModel
+
+# 加载 Mamba 模型
+model = MambaLMHeadModel.from_pretrained("state-spaces/mamba-130m")
+
+# 长文本摘要
+def summarize_long_text(text, max_length=200):
+    # Mamba 处理长序列
+    prompt = f"请总结以下内容（{max_length}字以内）：\n\n{text}\n\n摘要："
+    
+    output = model.generate(
+        prompt,
+        max_length=max_length,
+        temperature=0.7
+    )
+    
+    return output
+
+# 使用
+long_text = "..." * 10000  # 10k 字文章
+summary = summarize_long_text(long_text)
+print(summary)
+```
+
+</div>
+
+---
+
+## 📚 学习资源
+
+### 论文
+
+- [Switch Transformers](https://arxiv.org/abs/2101.03961) - MoE 简化
+- [CLIP](https://arxiv.org/abs/2103.00020) - 对比学习
+- [Mamba](https://arxiv.org/abs/2312.00752) - 状态空间模型
+- [RWKV](https://arxiv.org/abs/2305.13048) - 循环 Transformer
+- [JePA](https://arxiv.org/abs/2211.16150) - 世界模型
+
+### 代码
+
+- [Mixtral](https://github.com/mistralai/mistral-src) - 官方实现
+- [Mamba](https://github.com/state-spaces/mamba) - 官方实现
+- [RWKV](https://github.com/BlinkDL/RWKV-LM) - 官方实现
+
+### 博客
+
+- [Jay Alammar 博客](https://jalammar.github.io/) - 可视化讲解
+- [HuggingFace Blog](https://huggingface.co/blog) - 技术文章
+
+---
+
+## ✅ 学习检查清单
+
+- [ ] 理解 MoE 混合专家原理
+- [ ] 了解 Switch Transformer
+- [ ] 了解 Mixtral 架构
+- [ ] 理解 CLIP 对比学习
+- [ ] 了解多模态模型
+- [ ] 了解 Mamba 原理
+- [ ] 了解 RWKV 原理
+- [ ] 了解世界模型概念
+- [ ] 跟进前沿研究（Sora、Gemini 等）
+- [ ] 完成至少 1 个实战项目
+
+---
+
+*最后更新：2026-04-22*
