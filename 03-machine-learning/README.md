@@ -1,488 +1,949 @@
-# 第 3 章：机器学习基础（4-6 周）
+# 阶段 3：机器学习基础
 
-> 从数据中学习规律 —— 经典机器学习算法全景
-> 
-> _学习周期：4-6 周 | 难度：⭐⭐⭐ | 重要性：⭐⭐⭐⭐⭐_
+_从数据中学习模式与预测_
 
 ---
 
-## 📖 本章概述
+## 📖 学习指南
 
-### 机器学习 vs 深度学习
+**前置知识**：
+- ✅ Python 编程基础
+- ✅ NumPy、Pandas
+- ✅ 线性代数、概率论基础
+
+**学习目标**：
+- ✅ 理解机器学习的基本概念
+- ✅ 掌握监督学习核心算法
+- ✅ 掌握无监督学习核心算法
+- ✅ 理解特征工程与模型选择
+- ✅ 能独立完成机器学习项目
+
+**预计时间**：45 天
+
+---
+
+## 3.1 机器学习概览
+
+### 什么是机器学习？
+
+<div class="formula-box">
 
 ```
+定义：
+机器学习 = 从数据中学习模式，用于预测或决策
+
+传统编程：
+规则 + 数据 → 答案
+
 机器学习：
-  特征工程 + 经典算法（决策树、SVM、随机森林...）
-  优点：可解释性强、小数据表现好
-  缺点：需要人工特征工程
-
-深度学习：
-  端到端学习（神经网络自动学习特征）
-  优点：无需人工特征、大数据表现极佳
-  缺点：需要大量数据、黑盒模型
-
-学习建议：先学机器学习，再学深度学习
+数据 + 答案 → 规则（模型）
 ```
 
-### 本章学习目标
+</div>
 
-学完本章后，你将能够：
-- ✅ 理解监督学习和无监督学习的区别
-- ✅ 掌握经典机器学习算法的原理
-- ✅ 使用 scikit-learn 完成完整 ML 流程
-- ✅ 进行模型评估和调优
-- ✅ 独立完成 Kaggle 入门竞赛
+### 机器学习类型
+
+<div class="formula-box">
+
+```
+1. 监督学习（Supervised Learning）
+   输入：带标签的数据 (X, y)
+   任务：分类、回归
+   算法：线性回归、逻辑回归、决策树、SVM...
+
+2. 无监督学习（Unsupervised Learning）
+   输入：无标签的数据 X
+   任务：聚类、降维
+   算法：K-Means、PCA、自编码器...
+
+3. 半监督学习
+   输入：少量标签 + 大量无标签
+   任务：利用无标签数据提升性能
+
+4. 强化学习
+   输入：环境反馈（奖励/惩罚）
+   任务：学习最优策略
+   算法：Q-Learning、Policy Gradient...
+```
+
+</div>
+
+### 机器学习工作流程
+
+<div class="formula-box">
+
+```
+1. 问题定义
+   ↓
+2. 数据收集
+   ↓
+3. 数据探索与可视化
+   ↓
+4. 数据预处理
+   ↓
+5. 特征工程
+   ↓
+6. 模型选择
+   ↓
+7. 模型训练
+   ↓
+8. 模型评估
+   ↓
+9. 超参数调优
+   ↓
+10. 部署与监控
+```
+
+</div>
 
 ---
 
-## 📚 学习大纲
+## 3.2 监督学习
 
-### 3.1 监督学习（2 周）
+### 线性回归
 
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### 什么是监督学习？
-
-```
-定义：从有标签的数据中学习映射关系
-
-输入：X = [特征 1, 特征 2, ..., 特征 n]
-输出：y = 标签（类别或数值）
-
-任务类型：
-- 分类：预测离散类别（如垃圾邮件/非垃圾邮件）
-- 回归：预测连续数值（如房价、温度）
-```
-
-#### 核心算法详解
-
-**1. 线性回归**
+<div class="formula-box">
 
 ```python
-# 原理：拟合一条直线 y = wx + b
-# 目标：最小化预测值与真实值的平方误差
+# 模型
+y = w·X + b
 
+# 损失函数（MSE）
+L(w, b) = (1/n) Σ(yᵢ - ŷᵢ)²
+
+# 梯度下降
+w = w - η·∂L/∂w
+b = b - η·∂L/∂b
+
+# scikit-learn 实现
 from sklearn.linear_model import LinearRegression
-import numpy as np
 
-# 数据
-X = np.array([[1], [2], [3], [4], [5]])  # 特征
-y = np.array([2, 4, 5, 4, 5])             # 目标
-
-# 训练
 model = LinearRegression()
-model.fit(X, y)
-
-# 预测
-print(f"权重：{model.coef_[0]:.4f}")
-print(f"偏置：{model.intercept_:.4f}")
-print(f"预测 X=6: {model.predict([[6]])[0]:.4f}")
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 ```
 
-**2. 逻辑回归（分类）**
+</div>
+
+### 逻辑回归（分类）
+
+<div class="formula-box">
 
 ```python
-# 原理：用 Sigmoid 函数将线性输出映射到 (0,1)
-# P(y=1|x) = σ(wx + b) = 1 / (1 + e^(-(wx+b)))
+# Sigmoid 函数
+σ(z) = 1 / (1 + exp(-z))
 
+# 模型
+P(y=1|X) = σ(w·X + b)
+
+# 损失函数（交叉熵）
+L(w, b) = -Σ[yᵢlog(ŷᵢ) + (1-yᵢ)log(1-ŷᵢ)]
+
+# scikit-learn 实现
 from sklearn.linear_model import LogisticRegression
 
-X = np.array([[1], [2], [3], [4], [5], [6]])
-y = np.array([0, 0, 0, 1, 1, 1])  # 二分类标签
-
 model = LogisticRegression()
-model.fit(X, y)
-
-# 预测概率
-proba = model.predict_proba([[3.5]])
-print(f"属于类别 1 的概率：{proba[0][1]:.4f}")
-
-# 预测类别
-pred = model.predict([[3.5]])
-print(f"预测类别：{pred[0]}")
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 ```
 
-**3. 决策树**
+</div>
 
-```python
-# 原理：通过一系列 if-else 规则进行分类
-# 分裂标准：信息增益或基尼系数
+### 决策树
 
-from sklearn.tree import DecisionTreeClassifier, plot_tree
-import matplotlib.pyplot as plt
+<div class="formula-box">
 
-X = np.array([
-    [25, 50000],   # 年龄，收入
-    [35, 80000],
-    [45, 120000],
-    [22, 30000],
-    [50, 150000]
-])
-y = np.array([0, 1, 1, 0, 1])  # 是否购买
+```
+决策树结构：
+if 年龄 > 30?
+  ├─ 是：if 收入 > 50k?
+  │       ├─ 是：购买
+  │       └─ 否：不购买
+  └─ 否：不购买
 
-model = DecisionTreeClassifier(max_depth=2, random_state=42)
-model.fit(X, y)
-
-# 可视化
-plt.figure(figsize=(10, 6))
-plot_tree(model, feature_names=['年龄', '收入'], 
-          class_names=['不购买', '购买'], filled=True)
-plt.show()
-
-# 特征重要性
-print(f"特征重要性：{model.feature_importances_}")
+分裂标准：
+- 分类：信息增益、基尼系数
+- 回归：方差减少
 ```
 
-**4. 随机森林**
+</div>
+
+<div class="formula-box">
 
 ```python
-# 原理：多棵决策树投票（集成学习）
-# 优点：减少过拟合，提高泛化能力
+from sklearn.tree import DecisionTreeClassifier
 
+model = DecisionTreeClassifier(
+    max_depth=5,           # 最大深度
+    min_samples_split=10,  # 最小分裂样本数
+    criterion='gini'       # 分裂标准
+)
+model.fit(X_train, y_train)
+```
+
+</div>
+
+### 随机森林
+
+<div class="formula-box">
+
+```
+随机森林 = 多棵决策树的集成
+
+Bagging 思想：
+1. Bootstrap 采样（有放回抽样）
+2. 每棵树用不同的样本子集训练
+3. 随机选择特征子集
+4. 投票（分类）或平均（回归）
+
+优势：
+- 减少过拟合
+- 提高泛化能力
+- 可并行训练
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
 from sklearn.ensemble import RandomForestClassifier
 
-X = np.random.randn(1000, 20)  # 1000 样本，20 特征
-y = np.random.randint(0, 2, 1000)
-
 model = RandomForestClassifier(
-    n_estimators=100,    # 100 棵树
-    max_depth=10,        # 最大深度
-    random_state=42
+    n_estimators=100,      # 树的数量
+    max_depth=10,
+    n_jobs=-1              # 并行训练
 )
-model.fit(X, y)
-
-print(f"训练集准确率：{model.score(X, y):.4f}")
+model.fit(X_train, y_train)
 ```
 
-**5. 支持向量机（SVM）**
+</div>
+
+### 支持向量机（SVM）
+
+<div class="formula-box">
+
+```
+核心思想：
+找到最大间隔的超平面
+
+优化问题：
+min ||w||²
+s.t. yᵢ(w·xᵢ + b) ≥ 1
+
+核技巧：
+线性不可分 → 映射到高维 → 线性可分
+
+常用核函数：
+- 线性核：K(x, x') = x·x'
+- 多项式核：K(x, x') = (γx·x' + r)^d
+- RBF 核：K(x, x') = exp(-γ||x-x'||²)
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
-# 原理：找到最大间隔的超平面
-# 优点：高维空间表现好，有理论保证
-
 from sklearn.svm import SVC
 
-X = np.array([
-    [1, 2], [2, 3], [3, 3],  # 类别 0
-    [6, 5], [7, 7], [8, 6]   # 类别 1
-])
-y = np.array([0, 0, 0, 1, 1, 1])
-
-model = SVC(kernel='rbf', C=1.0)
-model.fit(X, y)
-
-# 支持向量
-print(f"支持向量数量：{len(model.support_vectors_)}")
+model = SVC(
+    kernel='rbf',          # 核函数
+    C=1.0,                 # 正则化参数
+    gamma='scale'          # 核系数
+)
+model.fit(X_train, y_train)
 ```
+
+</div>
+
+### K 近邻（KNN）
+
+<div class="formula-box">
+
+```
+核心思想：
+近朱者赤，近墨者黑
+
+算法：
+1. 计算测试点与所有训练点的距离
+2. 选择最近的 K 个邻居
+3. 投票（分类）或平均（回归）
+
+距离度量：
+- 欧氏距离：√Σ(xᵢ-yᵢ)²
+- 曼哈顿距离：Σ|xᵢ-yᵢ|
+- 闵可夫斯基距离：(Σ|xᵢ-yᵢ|^p)^(1/p)
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from sklearn.neighbors import KNeighborsClassifier
+
+model = KNeighborsClassifier(
+    n_neighbors=5,         # K 值
+    metric='euclidean'     # 距离度量
+)
+model.fit(X_train, y_train)
+```
+
+</div>
+
+### 朴素贝叶斯
+
+<div class="formula-box">
+
+```
+贝叶斯定理：
+P(y|X) = P(X|y)P(y) / P(X)
+
+朴素假设：
+特征之间条件独立
+
+P(X|y) = P(x₁|y) × P(x₂|y) × ... × P(xₙ|y)
+
+变体：
+- 高斯朴素贝叶斯：连续特征
+- 多项式朴素贝叶斯：离散特征（文本分类）
+- 伯努利朴素贝叶斯：二元特征
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from sklearn.naive_bayes import GaussianNB
+
+model = GaussianNB()
+model.fit(X_train, y_train)
+```
+
+</div>
 
 ---
 
-#### 算法对比表
+## 3.3 无监督学习
 
-| 算法 | 适用场景 | 优点 | 缺点 | 复杂度 |
-|------|---------|------|------|--------|
-| 线性回归 | 回归任务 | 简单、可解释 | 只能拟合线性关系 | O(n×d) |
-| 逻辑回归 | 二分类 | 简单、输出概率 | 线性边界 | O(n×d) |
-| 决策树 | 分类/回归 | 可解释、无需归一化 | 容易过拟合 | O(n×d×logn) |
-| 随机森林 | 分类/回归 | 准确率高、不易过拟合 | 模型大、速度慢 | O(k×n×d×logn) |
-| SVM | 小样本分类 | 高维有效、理论保证 | 大样本慢、参数敏感 | O(n²×d) |
-| KNN | 多分类 | 简单、无需训练 | 预测慢、对异常值敏感 | O(n×d) |
+### K-Means 聚类
 
-</details>
-
----
-
-### 3.2 无监督学习（1 周）
-
-<details>
-<summary>📋 查看详细知识点</summary>
-
-#### 什么是无监督学习？
+<div class="formula-box">
 
 ```
-定义：从无标签的数据中发现结构
+算法流程：
+1. 随机初始化 K 个聚类中心
+2. 分配每个点到最近的聚类中心
+3. 更新聚类中心为均值
+4. 重复 2-3 直到收敛
 
-输入：X = [特征 1, 特征 2, ..., 特征 n]
-输出：数据结构（聚类、降维结果）
+优化目标：
+min Σ||xᵢ - μⱼ||²
 
-任务类型：
-- 聚类：将相似样本分组
-- 降维：减少特征数量
-- 异常检测：找出异常样本
+K 值选择：
+- 肘部法则（Elbow Method）
+- 轮廓系数（Silhouette Score）
 ```
 
-#### K-Means 聚类
+</div>
+
+<div class="formula-box">
 
 ```python
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
 
-# 生成数据
-from sklearn.datasets import make_blobs
-X, _ = make_blobs(n_samples=300, centers=4, random_state=42)
-
-# 训练
-kmeans = KMeans(n_clusters=4, random_state=42)
-kmeans.fit(X)
-
-# 结果
-labels = kmeans.labels_
-centers = kmeans.cluster_centers_
-
-# 可视化
-plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', alpha=0.5)
-plt.scatter(centers[:, 0], centers[:, 1], c='red', marker='x', s=200)
-plt.title('K-Means 聚类结果')
-plt.show()
-
-# 评估（轮廓系数）
-from sklearn.metrics import silhouette_score
-score = silhouette_score(X, labels)
-print(f"轮廓系数：{score:.4f}")  # 越接近 1 越好
+model = KMeans(
+    n_clusters=5,          # K 值
+    init='k-means++',      # 初始化方法
+    n_init=10              # 运行次数
+)
+model.fit(X)
+labels = model.labels_
 ```
 
-#### PCA 降维
+</div>
+
+### 层次聚类
+
+<div class="formula-box">
+
+```
+两种方法：
+1. 凝聚（自底向上）
+   每个点是一个聚类 → 逐步合并
+
+2. 分裂（自顶向下）
+   所有点是一个聚类 → 逐步分裂
+
+距离度量：
+- 单链接：最近邻距离
+- 全链接：最远邻距离
+- 平均链接：平均距离
+- Ward 链接：方差最小化
+```
+
+</div>
+
+### DBSCAN
+
+<div class="formula-box">
+
+```
+基于密度的聚类
+
+核心概念：
+- 核心点：ε半径内至少有 min_samples 个点
+- 边界点：在核心点的ε半径内
+- 噪声点：既不是核心点也不是边界点
+
+优势：
+- 不需要指定聚类数
+- 能发现任意形状的聚类
+- 能识别噪声点
+
+参数：
+- eps (ε): 邻域半径
+- min_samples: 最小样本数
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from sklearn.cluster import DBSCAN
+
+model = DBSCAN(
+    eps=0.5,               # ε半径
+    min_samples=5          # 最小样本数
+)
+labels = model.fit_predict(X)
+```
+
+</div>
+
+### 主成分分析（PCA）
+
+<div class="formula-box">
+
+```
+目标：降维，保留最大方差
+
+步骤：
+1. 数据中心化
+2. 计算协方差矩阵
+3. 特征分解
+4. 选择前 k 个特征向量
+5. 投影到低维空间
+
+数学：
+最大化方差：max Var(XW)
+等价于：求协方差矩阵的特征向量
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
 from sklearn.decomposition import PCA
 
-# 高维数据
-X = np.random.randn(1000, 50)  # 1000 样本，50 维
+pca = PCA(
+    n_components=2,        # 降维到 2 维
+    svd_solver='full'
+)
+X_reduced = pca.fit_transform(X)
 
-# 降维到 2 维
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X)
-
-print(f"原始维度：{X.shape}")
-print(f"降维后维度：{X_pca.shape}")
-print(f"解释方差比：{pca.explained_variance_ratio_}")
-print(f"累计解释方差：{sum(pca.explained_variance_ratio_):.4f}")
-
-# 可视化
-plt.scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.5)
-plt.title('PCA 降维结果')
-plt.show()
+# 解释方差比
+print(pca.explained_variance_ratio_)
 ```
 
-#### t-SNE 可视化
+</div>
 
-```python
-from sklearn.manifold import TSNE
+### 自编码器（Autoencoder）
 
-# t-SNE 适合高维数据可视化
-X = np.random.randn(1000, 50)
-labels = np.random.randint(0, 4, 1000)
+<div class="formula-box">
 
-tsne = TSNE(n_components=2, random_state=42)
-X_tsne = tsne.fit_transform(X)
+```
+结构：
+输入 → 编码器 → 潜在表示 → 解码器 → 输出
 
-plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels, cmap='viridis', alpha=0.5)
-plt.title('t-SNE 可视化')
-plt.show()
+目标：
+最小化重构误差：min ||X - X'||²
+
+应用：
+- 降维
+- 去噪
+- 异常检测
+- 生成模型（VAE）
 ```
 
-</details>
+</div>
 
 ---
 
-### 3.3 模型评估与调优（1 周）
+## 3.4 特征工程
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### 特征选择
 
-#### 数据集划分
+<div class="formula-box">
 
 ```python
-from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import SelectKBest, f_classif
 
-X = np.random.randn(1000, 20)
-y = np.random.randint(0, 2, 1000)
+# 方差选择
+from sklearn.feature_selection import VarianceThreshold
+selector = VarianceThreshold(threshold=0.1)
 
-# 划分训练集和测试集
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, 
-    test_size=0.2,      # 20% 测试集
-    random_state=42,
-    stratify=y          # 分层抽样
-)
+# 单变量选择
+selector = SelectKBest(score_func=f_classif, k=10)
+X_selected = selector.fit_transform(X, y)
 
-print(f"训练集：{X_train.shape}")
-print(f"测试集：{X_test.shape}")
+# 递归特征消除
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+rfe = RFE(model, n_features_to_select=10)
+X_selected = rfe.fit_transform(X, y)
 ```
 
-#### 分类指标
+</div>
+
+### 特征提取
+
+<div class="formula-box">
+
+```python
+# 文本特征：TF-IDF
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer(max_features=1000)
+X = vectorizer.fit_transform(texts)
+
+# 图像特征：HOG
+from skimage.feature import hog
+
+features = hog(image, orientations=9, pixels_per_cell=(8, 8))
+
+# 类别特征：One-Hot 编码
+from sklearn.preprocessing import OneHotEncoder
+
+encoder = OneHotEncoder()
+X_encoded = encoder.fit_transform(X_categorical)
+```
+
+</div>
+
+### 特征缩放
+
+<div class="formula-box">
+
+```python
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+# 标准化（Z-score）
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+# 结果：均值=0，方差=1
+
+# 归一化（Min-Max）
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_scaled = scaler.fit_transform(X)
+# 结果：范围 [0, 1]
+```
+
+</div>
+
+### 处理缺失值
+
+<div class="formula-box">
+
+```python
+from sklearn.impute import SimpleImputer
+
+# 均值填充
+imputer = SimpleImputer(strategy='mean')
+X_imputed = imputer.fit_transform(X)
+
+# 中位数填充
+imputer = SimpleImputer(strategy='median')
+
+# 众数填充
+imputer = SimpleImputer(strategy='most_frequent')
+
+# 常数填充
+imputer = SimpleImputer(strategy='constant', fill_value=0)
+```
+
+</div>
+
+---
+
+## 3.5 模型评估
+
+### 分类指标
+
+<div class="formula-box">
+
+```
+混淆矩阵：
+              预测
+           正例  负例
+实际 正例   TP   FN
+     负例   FP   TN
+
+准确率：Accuracy = (TP+TN) / (TP+TN+FP+FN)
+精确率：Precision = TP / (TP+FP)
+召回率：Recall = TP / (TP+FN)
+F1 分数：F1 = 2 × (Precision × Recall) / (Precision + Recall)
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, 
-    f1_score, roc_auc_score, confusion_matrix
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
 )
 
-y_true = [0, 1, 1, 1, 0, 0, 1, 0, 1, 0]
-y_pred = [0, 1, 0, 1, 0, 1, 1, 0, 1, 1]
-
-print(f"准确率：{accuracy_score(y_true, y_pred):.4f}")
-print(f"精确率：{precision_score(y_true, y_pred):.4f}")
-print(f"召回率：{recall_score(y_true, y_pred):.4f}")
-print(f"F1 分数：{f1_score(y_true, y_pred):.4f}")
-print(f"AUC-ROC: {roc_auc_score(y_true, y_pred):.4f}")
-
-# 混淆矩阵
-cm = confusion_matrix(y_true, y_pred)
-print(f"混淆矩阵:\n{cm}")
+print(f"准确率：{accuracy_score(y_true, y_pred)}")
+print(f"精确率：{precision_score(y_true, y_pred)}")
+print(f"召回率：{recall_score(y_true, y_pred)}")
+print(f"F1 分数：{f1_score(y_true, y_pred)}")
+print(confusion_matrix(y_true, y_pred))
+print(classification_report(y_true, y_pred))
 ```
 
-#### 交叉验证
+</div>
+
+### ROC 曲线与 AUC
+
+<div class="formula-box">
+
+```
+ROC 曲线：
+- X 轴：假阳性率（FPR）
+- Y 轴：真阳性率（TPR）
+- 曲线下的面积 = AUC
+
+AUC 含义：
+- 0.5：随机猜测
+- 0.7-0.8：可接受
+- 0.8-0.9：良好
+- 0.9+：优秀
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
-from sklearn.model_selection import cross_val_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_curve, auc, roc_auc_score
 
-model = RandomForestClassifier(n_estimators=100, random_state=42)
+fpr, tpr, thresholds = roc_curve(y_true, y_scores)
+roc_auc = auc(fpr, tpr)
 
-# 5 折交叉验证
-scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+# 绘图
+import matplotlib.pyplot as plt
 
-print(f"各折准确率：{scores}")
-print(f"平均准确率：{scores.mean():.4f} (+/- {scores.std()*2:.4f})")
+plt.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.legend()
+plt.show()
 ```
 
-#### 网格搜索调参
+</div>
+
+### 回归指标
+
+<div class="formula-box">
+
+```python
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score
+)
+
+# 均方误差（MSE）
+mse = mean_squared_error(y_true, y_pred)
+
+# 均方根误差（RMSE）
+rmse = np.sqrt(mse)
+
+# 平均绝对误差（MAE）
+mae = mean_absolute_error(y_true, y_pred)
+
+# R²分数
+r2 = r2_score(y_true, y_pred)
+```
+
+</div>
+
+---
+
+## 3.6 模型选择与调优
+
+### 交叉验证
+
+<div class="formula-box">
+
+```
+K 折交叉验证：
+1. 数据分成 K 份
+2. 轮流用 K-1 份训练，1 份验证
+3. 平均 K 次的结果
+
+优点：
+- 更可靠的性能估计
+- 充分利用数据
+- 减少方差
+```
+
+</div>
+
+<div class="formula-box">
+
+```python
+from sklearn.model_selection import cross_val_score, KFold
+
+# K 折交叉验证
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+scores = cross_val_score(model, X, y, cv=kf, scoring='accuracy')
+
+print(f"平均准确率：{scores.mean():.3f} (+/- {scores.std():.3f})")
+```
+
+</div>
+
+### 网格搜索
+
+<div class="formula-box">
 
 ```python
 from sklearn.model_selection import GridSearchCV
 
+# 参数网格
 param_grid = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [5, 10, 20, None]
+    'C': [0.1, 1, 10],
+    'kernel': ['linear', 'rbf'],
+    'gamma': ['scale', 'auto']
 }
 
+# 网格搜索
 grid_search = GridSearchCV(
-    RandomForestClassifier(random_state=42),
+    SVC(),
     param_grid,
     cv=5,
     scoring='accuracy',
     n_jobs=-1
 )
 
-grid_search.fit(X_train, y_train)
+grid_search.fit(X, y)
 
+# 最佳参数
 print(f"最佳参数：{grid_search.best_params_}")
-print(f"最佳分数：{grid_search.best_score_:.4f}")
+print(f"最佳分数：{grid_search.best_score_:.3f}")
 ```
 
-</details>
+</div>
+
+### 随机搜索
+
+<div class="formula-box">
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import uniform, loguniform
+
+# 参数分布
+param_dist = {
+    'C': loguniform(0.1, 10),
+    'gamma': loguniform(0.01, 1),
+    'kernel': ['linear', 'rbf']
+}
+
+# 随机搜索
+random_search = RandomizedSearchCV(
+    SVC(),
+    param_distributions=param_dist,
+    n_iter=50,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    random_state=42
+)
+
+random_search.fit(X, y)
+```
+
+</div>
 
 ---
 
-### 3.4 特征工程（1 周）
+## 3.7 实战项目
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### 项目 1：房价预测
 
-#### 特征缩放
+<div class="formula-box">
 
 ```python
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
-# 标准化（均值为 0，方差为 1）
+# 1. 加载数据
+df = pd.read_csv('housing.csv')
+
+# 2. 特征工程
+X = df[['size', 'bedrooms', 'bathrooms', 'age']]
+y = df['price']
+
+# 3. 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 4. 训练模型
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 5. 预测与评估
+y_pred = model.predict(X_test)
+print(f"MSE: {mean_squared_error(y_test, y_pred):.2f}")
+print(f"R²: {r2_score(y_test, y_pred):.3f}")
+
+# 6. 特征重要性
+for feature, coef in zip(X.columns, model.coef_):
+    print(f"{feature}: {coef:.2f}")
+```
+
+</div>
+
+### 项目 2：垃圾邮件分类
+
+<div class="formula-box">
+
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score
+
+# 1. 加载数据
+emails = [...]  # 邮件文本
+labels = [...]  # 0=正常，1=垃圾
+
+# 2. 构建管道
+model = Pipeline([
+    ('tfidf', TfidfVectorizer(max_features=5000)),
+    ('clf', MultinomialNB())
+])
+
+# 3. 交叉验证
+scores = cross_val_score(model, emails, labels, cv=5, scoring='f1')
+print(f"平均 F1 分数：{scores.mean():.3f}")
+
+# 4. 训练与预测
+model.fit(emails, labels)
+predictions = model.predict(new_emails)
+```
+
+</div>
+
+### 项目 3：客户分群
+
+<div class="formula-box">
+
+```python
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# 1. 加载数据
+df = pd.read_csv('customers.csv')
+X = df[['age', 'income', 'spending_score']]
+
+# 2. 数据标准化
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# 归一化（缩放到 [0, 1]）
-normalizer = MinMaxScaler()
-X_normalized = normalizer.fit_transform(X)
+# 3. 确定 K 值（肘部法则）
+inertias = []
+for k in range(1, 11):
+    model = KMeans(n_clusters=k, random_state=42)
+    model.fit(X_scaled)
+    inertias.append(model.inertia_)
+
+plt.plot(range(1, 11), inertias, 'bo-')
+plt.xlabel('K')
+plt.ylabel('Inertia')
+plt.title('Elbow Method')
+plt.show()
+
+# 4. 聚类
+model = KMeans(n_clusters=5, random_state=42)
+clusters = model.fit_predict(X_scaled)
+
+# 5. 可视化
+plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=clusters, cmap='viridis')
+plt.title('Customer Segments')
+plt.show()
+
+# 6. 分析每个聚类
+df['cluster'] = clusters
+print(df.groupby('cluster').mean())
 ```
 
-#### 类别特征编码
-
-```python
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-
-# Label Encoding（有序类别）
-le = LabelEncoder()
-colors = ['红', '蓝', '绿', '红', '蓝']
-encoded = le.fit_transform(colors)
-print(f"Label 编码：{encoded}")  # [2, 0, 1, 2, 0]
-
-# One-Hot Encoding（无序类别）
-ohe = OneHotEncoder()
-categories = np.array([['红'], ['蓝'], ['绿'], ['红']])
-one_hot = ohe.fit_transform(categories)
-print(f"One-Hot 编码:\n{one_hot.toarray()}")
-```
-
-#### 处理缺失值
-
-```python
-from sklearn.impute import SimpleImputer
-import numpy as np
-
-X = np.array([
-    [1, 2, np.nan],
-    [4, np.nan, 6],
-    [7, 8, 9]
-])
-
-# 用均值填充
-imputer = SimpleImputer(strategy='mean')
-X_filled = imputer.fit_transform(X)
-
-# 其他策略：'median'（中位数）、'most_frequent'（众数）、'constant'（常数）
-```
-
-#### 特征选择
-
-```python
-from sklearn.feature_selection import SelectKBest, f_classif
-
-# 选择最重要的 k 个特征
-selector = SelectKBest(score_func=f_classif, k=5)
-X_new = selector.fit_transform(X, y)
-
-print(f"选择的特征掩码：{selector.get_support()}")
-print(f"原始特征数：{X.shape[1]}")
-print(f"选择的特征数：{X_new.shape[1]}")
-```
-
-</details>
+</div>
 
 ---
 
-## 📊 进度追踪
+## 📚 学习资源
 
-### 打卡表
+### 课程
 
-| 章节 | 周数 | 已完成 | 进度 | 状态 |
-|------|------|--------|------|------|
-| 3.1 监督学习 | 2 周 | - | 0% | ⏳ |
-| 3.2 无监督学习 | 1 周 | - | 0% | ⏳ |
-| 3.3 模型评估 | 1 周 | - | 0% | ⏳ |
-| 3.4 特征工程 | 1 周 | - | 0% | ⏳ |
+- [吴恩达机器学习](https://www.coursera.org/learn/machine-learning)
+- [李宏毅机器学习](https://www.youtube.com/playlist?list=PLJV_el3uVTsODxQFgzMzPLa16h6B8kWM_)
 
-### 项目清单
+### 书籍
 
-- [ ] 线性回归预测房价
-- [ ] 决策树分类
-- [ ] 随机森林 Kaggle 竞赛
-- [ ] K-Means 客户分群
-- [ ] PCA 降维可视化
-- [ ] 完整 ML 流程（含调参）
+- 《机器学习》周志华（西瓜书）
+- 《统计学习方法》李航
+- 《Hands-On Machine Learning》Aurélien Géron
+
+### 实践平台
+
+- [Kaggle](https://www.kaggle.com/) - 数据科学竞赛
+- [UCI ML Repository](https://archive.ics.uci.edu/) - 数据集
 
 ---
 
-## 📖 子章节索引
+## ✅ 学习检查清单
 
-| 编号 | 章节 | 内容 | 状态 |
-|------|------|------|------|
-| 3.1 | 监督学习 | 线性回归、逻辑回归、决策树、随机森林、SVM | 📝 |
-| 3.2 | 无监督学习 | K-Means、PCA、t-SNE | 📝 |
-| 3.3 | 模型评估 | 指标、交叉验证、网格搜索 | 📝 |
-| 3.4 | 特征工程 | 缩放、编码、缺失值处理 | 📝 |
+- [ ] 理解机器学习基本概念
+- [ ] 掌握线性回归与逻辑回归
+- [ ] 掌握决策树与随机森林
+- [ ] 掌握 SVM 原理
+- [ ] 掌握 K-Means 聚类
+- [ ] 掌握 PCA 降维
+- [ ] 掌握特征工程方法
+- [ ] 掌握模型评估指标
+- [ ] 掌握交叉验证与网格搜索
+- [ ] 完成至少 2 个实战项目
 
 ---
 
-> _机器学习是从数据中提取智慧的艺术，好的特征胜过复杂的模型。_
-> 
-> _—— 悟空_
+*最后更新：2026-04-22*
