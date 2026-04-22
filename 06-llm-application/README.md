@@ -1,420 +1,456 @@
-# 第 6 章：大模型应用开发（6-8 周）
+# 阶段 6：LLM 应用
 
-> 站在巨人肩膀上创新 —— Prompt、RAG、微调实战
-> 
-> _学习周期：6-8 周 | 难度：⭐⭐⭐⭐ | 重要性：⭐⭐⭐⭐⭐_
+_大语言模型的应用与开发_
 
 ---
 
-## 📖 本章概述
+## 📖 学习指南
 
-### 大模型应用开发三驾马车
+**前置知识**：
+- ✅ Transformer 架构
+- ✅ Python 编程
+- ✅ 深度学习基础
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    大模型应用开发                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│  │   Prompt    │    │     RAG     │    │   微调      │         │
-│  │   工程      │    │  检索增强   │    │  Fine-tuning│         │
-│  │             │    │  生成       │    │             │         │
-│  │ • 零样本    │    │ • 向量检索  │    │ • 全量微调  │         │
-│  │ • 少样本    │    │ • 知识库    │    │ • LoRA      │         │
-│  │ • 思维链    │    │ • 上下文增强│    │ • QLoRA     │         │
-│  │             │    │             │    │             │         │
-│  │ 成本：$     │    │ 成本：$$    │    │ 成本：$$$   │         │
-│  │ 效果：★★★   │    │ 效果：★★★★  │    │ 效果：★★★★★ │         │
-│  └─────────────┘    └─────────────┘    └─────────────┘         │
-│                                                                 │
-│  选择建议：                                                      │
-│  1. 先用 Prompt 解决（最快、最便宜）                              │
-│  2. 不行再加 RAG（需要外部知识）                                 │
-│  3. 最后考虑微调（领域专用、高质量数据）                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+**学习目标**：
+- ✅ 理解 LLM 基本原理
+- ✅ 掌握 Prompt 工程技巧
+- ✅ 掌握 RAG 检索增强生成
+- ✅ 掌握微调技术（LoRA、QLoRA）
+- ✅ 能开发 LLM 应用
 
-### 本章学习目标
-
-学完本章后，你将能够：
-- ✅ 设计高效的 Prompt 解决复杂任务
-- ✅ 构建 RAG 系统实现知识库问答
-- ✅ 使用 LoRA 微调大模型
-- ✅ 使用 LangChain 开发 AI 应用
-- ✅ 独立完成企业级 AI 应用开发
+**预计时间**：45 天
 
 ---
 
-## 📚 学习大纲
+## 6.1 LLM 基础
 
-### 6.1 Prompt 工程（2 周）
+### 什么是 LLM？
 
-<details>
-<summary>📋 查看详细知识点</summary>
+<div class="formula-box">
 
-#### Prompt 基础
+```
+LLM（Large Language Model）= 大规模语言模型
 
-```python
-# 好的 Prompt 三要素
-good_prompt = """
-# 角色设定
-你是一位资深的数据科学家，擅长机器学习教学。
+核心特点：
+- 参数量巨大（10 亿 - 万亿级）
+- 在海量文本上预训练
+- 具有涌现能力（Emergent Abilities）
+- 可完成多种任务（零样本、少样本）
 
-# 任务描述
-请解释什么是过拟合，要求：
-1. 用通俗易懂的类比
-2. 给出一个具体例子
-3. 说明如何避免
-
-# 输出格式
-用 Markdown 格式，包含代码示例
-"""
-
-# 对比：差的 Prompt
-bad_prompt = "什么是过拟合？"
+代表模型：
+- GPT 系列（OpenAI）
+- LLaMA 系列（Meta）
+- Claude 系列（Anthropic）
+- 通义千问（阿里）
+- 文心一言（百度）
 ```
 
-#### Zero-shot vs Few-shot
+</div>
 
-```python
-# Zero-shot（无示例）
-zero_shot = """
-将以下英文翻译成中文：
-"The quick brown fox jumps over the lazy dog."
-"""
+### LLM 架构演进
 
-# Few-shot（少样本示例）
-few_shot = """
-翻译示例：
-English: Hello, how are you?
-Chinese: 你好，最近怎么样？
+<div class="formula-box">
 
-English: I love machine learning.
-Chinese: 我喜欢机器学习。
+```
+GPT (2018)：
+- Decoder-only
+- 1.17B 参数
+- 单向注意力
 
-English: The weather is nice today.
-Chinese: 
-"""
-# 模型会自动续写：今天天气很好。
+GPT-2 (2019)：
+- 1.5B 参数
+- 零样本能力
+
+GPT-3 (2020)：
+- 175B 参数
+- 少样本学习（Few-shot）
+
+LLaMA (2023)：
+- 7B-65B 参数
+- 开源、高效
+
+LLaMA 2 (2023)：
+- 免费商用
+- 更好的对齐
+
+LLaMA 3 (2024)：
+- 8B-70B 参数
+- 更强的推理能力
 ```
 
-#### 思维链（Chain of Thought）
-
-```python
-# 普通 Prompt
-cot_normal = """
-小明有 5 个苹果，他给了小红 2 个，又买了 3 个，现在有几个？
-"""
-
-# CoT Prompt（引导逐步思考）
-cot_prompt = """
-小明有 5 个苹果，他给了小红 2 个，又买了 3 个，现在有几个？
-
-请逐步思考：
-1. 初始有多少苹果？
-2. 给了小红后剩多少？
-3. 买了 3 个后是多少？
-4. 最终答案是多少？
-"""
-
-# 效果对比
-# 普通 Prompt 可能直接回答，容易出错
-# CoT Prompt 引导模型展示推理过程，准确率更高
-```
-
-#### ReAct 模式（Reason + Act）
-
-```python
-react_prompt = """
-你是一个智能助手，可以使用工具解决问题。
-
-可用工具：
-- search(query): 搜索网络
-- calculate(expression): 计算数学表达式
-
-问题：特斯拉 2023 年的营收是多少？同比增长多少？
-
-思考过程：
-Thought: 我需要先搜索特斯拉 2023 年的营收数据
-Action: search("特斯拉 2023 年营收")
-Observation: 特斯拉 2023 年营收 967.7 亿美元，同比增长 19%
-
-Thought: 我已经获得了所需信息
-Final Answer: 特斯拉 2023 年营收为 967.7 亿美元，同比增长 19%
-"""
-```
-
-#### Prompt 优化技巧
-
-```python
-# 1. 结构化输出
-structured = """
-请分析以下文本的情感，按 JSON 格式输出：
-
-{
-  "sentiment": "positive/negative/neutral",
-  "confidence": 0-1 之间的数字，
-  "keywords": ["关键词 1", "关键词 2"]
-}
-
-文本：这个产品真的很好用，我非常喜欢！
-"""
-
-# 2. 角色设定
-role_play = """
-你是一位经验丰富的 Python 工程师，擅长代码审查。
-请审查以下代码，指出：
-1. 潜在 bug
-2. 性能问题
-3. 改进建议
-"""
-
-# 3. 分步指令
-step_by_step = """
-请按以下步骤完成任务：
-
-步骤 1：阅读并理解输入文本
-步骤 2：提取关键信息
-步骤 3：总结核心观点
-步骤 4：生成简洁摘要
-
-输入：[长文本]
-"""
-```
-
-</details>
+</div>
 
 ---
 
-### 6.2 RAG 检索增强生成（2 周）
+## 6.2 Prompt 工程
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### 什么是 Prompt 工程？
 
-#### RAG 原理
+<div class="formula-box">
 
 ```
-RAG 工作流程：
+Prompt 工程 = 设计最优的输入提示，引导 LLM 输出期望结果
 
-用户问题 ──→ 向量化 ──→ 向量检索 ──→ 相关文档片段
-                                              │
-                                              ▼
-用户问题 + 相关文档 ──→ LLM ──→ 增强生成答案
+核心思想：
+- 不修改模型参数
+- 通过文本指令控制模型
+- 低成本、高效率
 ```
 
-#### 向量数据库对比
+</div>
 
-| 数据库 | 特点 | 适用场景 | 难度 |
-|--------|------|---------|------|
-| FAISS | Facebook 开源，速度快 | 本地部署、小规模 | ⭐⭐ |
-| Chroma | 轻量级，易上手 | 原型开发、小项目 | ⭐ |
-| Milvus | 功能完整，可扩展 | 生产环境、大规模 | ⭐⭐⭐ |
-| Pinecone | 托管服务 | 快速上线 | ⭐ |
+### 基础技巧
 
-#### 完整 RAG 实现
+<div class="formula-box">
+
+```python
+# 1. 清晰指令
+❌ "写点什么"
+✅ "写一篇 500 字的文章，介绍人工智能的发展历史"
+
+# 2. 提供示例（Few-shot）
+❌ "分类：这部电影太好看了"
+✅ 
+"""
+示例 1: "这部电影太棒了" → 正面
+示例 2: "我讨厌这个电影" → 负面
+分类："这部电影太好看了" →
+"""
+
+# 3. 指定输出格式
+✅ "请用 JSON 格式输出，包含 title、content、tags 三个字段"
+
+# 4. 分步思考（Chain of Thought）
+✅ "请逐步思考：首先...其次...最后..."
+
+# 5. 角色扮演
+✅ "你是一位资深软件工程师，请审查以下代码..."
+```
+
+</div>
+
+### 高级技巧
+
+<div class="formula-box">
+
+```
+1. Chain of Thought (CoT)
+让模型展示推理过程
+
+Prompt:
+"小明有 5 个苹果，给了小红 2 个，又买了 3 个，现在有几个？
+请逐步推理。"
+
+效果：
+- 减少计算错误
+- 提高复杂任务准确率
+
+2. Self-Consistency
+多次采样，选择最一致的答案
+
+3. ReAct（Reasoning + Acting）
+推理与行动交替
+
+4. Tree of Thoughts
+多路径探索，选择最优解
+```
+
+</div>
+
+### 实战示例
+
+<div class="formula-box">
+
+```python
+from openai import OpenAI
+
+client = OpenAI(api_key="your-api-key")
+
+# 1. 文本分类
+def classify_sentiment(text):
+    prompt = f"""
+请判断以下文本的情感倾向（正面/负面/中性）：
+
+文本："{text}"
+
+情感倾向：
+"""
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# 2. 代码生成
+def generate_code(description):
+    prompt = f"""
+请编写 Python 代码实现以下功能：
+
+{description}
+
+要求：
+1. 代码简洁高效
+2. 添加必要的注释
+3. 包含使用示例
+
+代码：
+"""
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# 3. 文档摘要
+def summarize_document(text, max_length=200):
+    prompt = f"""
+请用{max_length}字以内总结以下文档的核心内容：
+
+{text}
+
+摘要：
+"""
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+```
+
+</div>
+
+---
+
+## 6.3 RAG（检索增强生成）
+
+### 什么是 RAG？
+
+<div class="formula-box">
+
+```
+RAG（Retrieval-Augmented Generation）= 检索 + 生成
+
+流程：
+1. 用户提问
+2. 从知识库检索相关文档
+3. 将文档注入 Prompt
+4. LLM 生成回答
+
+优势：
+- 减少幻觉
+- 知识可更新
+- 可追溯来源
+```
+
+</div>
+
+### RAG 架构
+
+<div class="formula-box">
+
+```
+用户问题
+    ↓
+Embedding 模型
+    ↓
+问题向量
+    ↓
+向量数据库（检索 Top-K 相关文档）
+    ↓
+文档片段 + 问题 → Prompt 模板
+    ↓
+LLM
+    ↓
+回答
+```
+
+</div>
+
+### 实战实现
+
+<div class="formula-box">
 
 ```python
 from langchain.document_loaders import TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 
 # 1. 加载文档
-loader = TextLoader("company_knowledge.txt", encoding='utf-8')
+loader = TextLoader("knowledge_base.txt")
 documents = loader.load()
 
-# 2. 文本分块
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50
-)
+# 2. 分割文档
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 docs = text_splitter.split_documents(documents)
 
-# 3. 创建向量存储
+# 3. 创建向量数据库
 embeddings = OpenAIEmbeddings()
-vectorstore = Chroma.from_documents(
-    documents=docs,
-    embedding=embeddings,
-    persist_directory="./chroma_db"
-)
+vectorstore = Chroma.from_documents(docs, embeddings)
 
-# 4. 创建检索器
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 3}  # 返回最相关的 3 个文档
-)
-
-# 5. 创建 QA 链
+# 4. 创建检索链
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
-    chain_type="stuff",
-    retriever=retriever,
+    retriever=vectorstore.as_retriever(),
     return_source_documents=True
 )
 
-# 6. 提问
-query = "公司的年假政策是什么？"
+# 5. 使用
+query = "什么是机器学习？"
 result = qa_chain({"query": query})
 
-print(f"答案：{result['result']}")
-print(f"参考文档：{result['source_documents']}")
+print(f"回答：{result['result']}")
+print(f"来源：{result['source_documents']}")
 ```
 
-#### RAG 优化技巧
+</div>
 
-```python
-# 1. 混合检索（稠密 + 稀疏）
-from langchain.retrievers import EnsembleRetriever
-from langchain.vectorstores import FAISS
-from langchain.retrievers import BM25Retriever
+### 优化技巧
 
-# 稠密检索
-dense_retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+<div class="formula-box">
 
-# 稀疏检索（BM25）
-bm25_retriever = BM25Retriever.from_documents(docs)
-bm25_retriever.k = 2
+```
+1. 文档分割策略
+- 按段落分割
+- 按语义分割
+- 重叠窗口（避免信息丢失）
 
-# 混合
-ensemble_retriever = EnsembleRetriever(
-    retrievers=[dense_retriever, bm25_retriever],
-    weights=[0.5, 0.5]
-)
+2. 检索优化
+- 多路召回（关键词 + 向量）
+- 重排序（Re-ranking）
+- 元数据过滤
 
-# 2. 重排序（Rerank）
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
-
-compressor = LLMChainExtractor.from_llm(llm)
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=compressor,
-    base_retriever=vectorstore.as_retriever()
-)
-
-# 3. 多查询检索
-from langchain.retrievers.multi_query import MultiQueryRetriever
-multi_query_retriever = MultiQueryRetriever.from_llm(
-    retriever=vectorstore.as_retriever(),
-    llm=llm
-)
+3. Prompt 优化
+- 添加系统指令
+- 指定回答格式
+- 要求引用来源
 ```
 
-</details>
+</div>
 
 ---
 
-### 6.3 微调技术（2 周）
+## 6.4 微调技术
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### 为什么需要微调？
 
-#### 微调方式对比
-
-| 方式 | 可训练参数 | 显存需求 | 效果 | 适用场景 |
-|------|-----------|---------|------|---------|
-| 全量微调 | 100% | 极高 | 最佳 | 充足资源 |
-| LoRA | 1-10% | 低 | 接近全量 | 推荐默认 |
-| QLoRA | 1-10% | 极低 | 略低于 LoRA | 资源受限 |
-
-#### LoRA 原理
+<div class="formula-box">
 
 ```
-LoRA 核心思想：
-原始权重 W 冻结，训练低秩适配器
+预训练模型的问题：
+- 通用知识强，领域知识弱
+- 指令遵循能力不足
+- 输出风格不可控
 
-W' = W + ΔW
-ΔW = A × B
+微调的作用：
+- 适应特定领域
+- 提升任务性能
+- 控制输出风格
+```
+
+</div>
+
+### 全量微调 vs 参数高效微调
+
+<div class="formula-box">
+
+```
+全量微调：
+- 更新所有参数
+- 计算资源需求大
+- 可能灾难性遗忘
+
+参数高效微调（PEFT）：
+- 只更新少量参数
+- 计算资源需求小
+- 保持预训练知识
+- 代表：LoRA、QLoRA、Adapter
+```
+
+</div>
+
+### LoRA（Low-Rank Adaptation）
+
+<div class="formula-box">
+
+```
+原理：
+W' = W + ΔW = W + BA
 
 其中：
-- W: 原始权重（冻结）
-- A: 下投影矩阵 (d×r)，可训练
-- B: 上投影矩阵 (r×k)，可训练
-- r: 秩（通常 4-64），远小于 d
+- W：预训练权重（冻结）
+- B ∈ R^(d×r)：低秩矩阵（可学习）
+- A ∈ R^(r×k)：低秩矩阵（可学习）
+- r << d（通常 r=8, 16, 32）
 
 优势：
-- 可训练参数减少 10000 倍
+- 参数量减少 10000 倍
+- 训练速度提升 3 倍
 - 效果接近全量微调
-- 可快速切换不同任务
 ```
 
-#### LoRA 微调实战（使用 PEFT）
+</div>
+
+<div class="formula-box">
 
 ```python
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-from peft import LoraConfig, get_peft_model, TaskType
-from trl import SFTTrainer
-import torch
+from peft import LoraConfig, get_peft_model
+from transformers import AutoModelForCausalLM
 
-# 1. 加载模型和分词器
-model_name = "THUDM/chatglm3-6b"
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    trust_remote_code=True,
-    torch_dtype=torch.float16,
-    device_map="auto"
-)
+# 1. 加载基础模型
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf")
 
 # 2. 配置 LoRA
 lora_config = LoraConfig(
-    task_type=TaskType.CAUSAL_LM,
-    r=8,                    # 秩
-    lora_alpha=32,          # 缩放因子
-    lora_dropout=0.1,
-    target_modules=["query_key_value"],  # 目标模块
+    r=16,                      # 秩
+    lora_alpha=32,             # 缩放系数
+    target_modules=["q_proj", "v_proj"],  # 目标模块
+    lora_dropout=0.05,
     bias="none",
-    inference_mode=False
+    task_type="CAUSAL_LM"
 )
 
 # 3. 应用 LoRA
 model = get_peft_model(model, lora_config)
 model.print_trainable_parameters()
-# 输出：trainable params: 4M || all params: 6000M || trainable%: 0.07%
+# 输出：trainable params: 0.1% || all params: 100%
 
-# 4. 准备数据
-train_data = [
-    {"text": "问题：什么是机器学习？答案：机器学习是..."},
-    {"text": "问题：Python 中如何实现列表推导？答案：..."},
-    # ... 更多数据
-]
-
-# 5. 训练配置
-training_args = TrainingArguments(
-    output_dir="./lora_output",
-    num_train_epochs=3,
-    per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
-    learning_rate=2e-4,
-    fp16=True,
-    logging_steps=10,
-    save_strategy="epoch",
-)
-
-# 6. 创建 Trainer
-trainer = SFTTrainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_data,
-    tokenizer=tokenizer,
-)
-
-# 7. 开始训练
+# 4. 训练（与普通训练相同）
+trainer = Trainer(model=model, ...)
 trainer.train()
 
-# 8. 保存 LoRA 权重
-model.save_pretrained("./lora_weights")
+# 5. 保存 LoRA 权重
+model.save_pretrained("lora_weights")
 ```
 
-#### QLoRA 微调（量化 +LoRA）
+</div>
+
+### QLoRA（Quantized LoRA）
+
+<div class="formula-box">
+
+```
+原理：
+- 4-bit 量化预训练模型
+- 结合 LoRA 微调
+
+优势：
+- 显存需求降低 4 倍
+- 7B 模型只需 8GB 显存
+- 效果接近 LoRA
+```
+
+</div>
+
+<div class="formula-box">
 
 ```python
 from transformers import BitsAndBytesConfig
 
-# 4bit 量化配置
+# 4-bit 量化配置
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_quant_type="nf4",
@@ -424,121 +460,70 @@ bnb_config = BitsAndBytesConfig(
 
 # 加载量化模型
 model = AutoModelForCausalLM.from_pretrained(
-    model_name,
+    "meta-llama/Llama-2-7b-hf",
     quantization_config=bnb_config,
-    device_map="auto",
-    trust_remote_code=True
+    device_map="auto"
 )
 
-# 然后同样应用 LoRA 配置
-model = get_peft_model(model, lora_config)
-
-# 训练方式相同
-# 显存需求从 24GB+ 降低到 12GB 左右
+# 应用 LoRA（同上）
 ```
 
-#### 微调数据格式
-
-```python
-# 指令微调数据格式
-train_data = [
-    {
-        "instruction": "请翻译以下句子",
-        "input": "The quick brown fox jumps over the lazy dog.",
-        "output": "敏捷的棕色狐狸跳过了懒惰的狗。"
-    },
-    {
-        "instruction": "写一首关于春天的诗",
-        "input": "",
-        "output": "春风拂面花自开，\n柳绿桃红燕归来...\n"
-    }
-]
-
-# 转换为训练格式
-def format_example(example):
-    if example.get("input"):
-        return f"""### Instruction:
-{example['instruction']}
-
-### Input:
-{example['input']}
-
-### Output:
-{example['output']}"""
-    else:
-        return f"""### Instruction:
-{example['instruction']}
-
-### Output:
-{example['output']}"""
-```
-
-</details>
+</div>
 
 ---
 
-### 6.4 大模型开发框架（1 周）
+## 6.5 LLM Agent
 
-<details>
-<summary>📋 查看详细知识点</summary>
+### 什么是 Agent？
 
-#### LangChain 核心概念
+<div class="formula-box">
+
+```
+LLM Agent = LLM + 规划 + 工具使用 + 记忆
+
+核心能力：
+1. 规划（Planning）
+   - 任务分解
+   - 多步推理
+
+2. 工具使用（Tool Use）
+   - 调用 API
+   - 执行代码
+   - 查询数据库
+
+3. 记忆（Memory）
+   - 短期记忆（上下文）
+   - 长期记忆（向量数据库）
+```
+
+</div>
+
+### LangChain 框架
+
+<div class="formula-box">
 
 ```python
+from langchain.agents import initialize_agent, Tool, AgentType
 from langchain.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
+from langchain.utilities import DuckDuckGoSearchAPIWrapper
 
-# 1. 模型
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
-
-# 2. 消息
-messages = [
-    SystemMessage(content="你是一位有帮助的助手"),
-    HumanMessage(content="你好，请介绍一下自己")
-]
-
-# 3. 调用
-response = llm(messages)
-print(response.content)
-```
-
-#### Chain（链）
-
-```python
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
-
-# Prompt 模板
-prompt = ChatPromptTemplate.from_template(
-    "请用{style}的风格解释什么是{concept}"
-)
-
-# 链
-chain = LLMChain(llm=llm, prompt=prompt)
-
-# 使用
-result = chain.invoke({"style": "幽默", "concept": "量子力学"})
-print(result["text"])
-```
-
-#### Agent（智能体）
-
-```python
-from langchain.agents import initialize_agent, Tool
-from langchain.agents import AgentType
-from langchain.utilities import SerpAPIWrapper
-
-# 工具
-search = SerpAPIWrapper()
+# 1. 定义工具
+search = DuckDuckGoSearchAPIWrapper()
 tools = [
     Tool(
         name="Search",
         func=search.run,
-        description="当你需要搜索实时信息时使用"
+        description="搜索互联网获取最新信息"
+    ),
+    Tool(
+        name="Calculator",
+        func=lambda x: eval(x),
+        description="执行数学计算"
     )
 ]
 
-# 初始化 Agent
+# 2. 初始化 Agent
+llm = ChatOpenAI(model="gpt-4", temperature=0)
 agent = initialize_agent(
     tools,
     llm,
@@ -546,59 +531,180 @@ agent = initialize_agent(
     verbose=True
 )
 
-# 运行
-result = agent.run("今天北京的天气如何？")
+# 3. 使用
+response = agent.run("今天北京的天气如何？气温是多少度？")
+print(response)
 ```
 
-#### Memory（记忆）
+</div>
+
+### AutoGen 框架
+
+<div class="formula-box">
 
 ```python
+from autogen import AssistantAgent, UserProxyAgent
+
+# 1. 配置
+config_list = [{"model": "gpt-4", "api_key": "your-api-key"}]
+
+# 2. 创建 Agent
+assistant = AssistantAgent(
+    name="assistant",
+    llm_config={"config_list": config_list}
+)
+
+user_proxy = UserProxyAgent(
+    name="user_proxy",
+    code_execution_config={"work_dir": "coding"}
+)
+
+# 3. 对话
+user_proxy.initiate_chat(
+    assistant,
+    message="请帮我写一个 Python 脚本，计算斐波那契数列"
+)
+```
+
+</div>
+
+---
+
+## 6.6 实战项目
+
+### 项目 1：智能客服系统
+
+<div class="formula-box">
+
+```python
+from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 
-# 带记忆的对话
+# 1. 准备知识库（RAG）
+vectorstore = Chroma.from_documents(docs, embeddings)
+
+# 2. 创建对话链
 memory = ConversationBufferMemory(
     memory_key="chat_history",
     return_messages=True
 )
 
-# 创建带记忆的链
-from langchain.chains import ConversationChain
-conversation = ConversationChain(
-    llm=llm,
-    memory=memory,
+qa_chain = ConversationalRetrievalChain.from_llm(
+    llm=ChatOpenAI(model="gpt-3.5-turbo"),
+    retriever=vectorstore.as_retriever(),
+    memory=memory
+)
+
+# 3. 对话
+chat_history = []
+while True:
+    query = input("用户：")
+    if query == "exit":
+        break
+    
+    result = qa_chain({"question": query, "chat_history": chat_history})
+    print(f"客服：{result['answer']}")
+    
+    chat_history.append((query, result['answer']))
+```
+
+</div>
+
+### 项目 2：代码助手
+
+<div class="formula-box">
+
+```python
+from langchain.agents import create_python_agent
+from langchain.python import PythonREPL
+
+# 创建 Python Agent
+agent = create_python_agent(
+    llm=ChatOpenAI(model="gpt-4"),
+    tool=PythonREPL(),
     verbose=True
 )
 
-# 多轮对话
-print(conversation.predict(input="你好，我叫小明"))
-print(conversation.predict(input="我今年 25 岁"))
-print(conversation.predict(input="我叫什么名字？"))  # 能记住
+# 使用
+response = agent.run("请计算 1 到 100 的平方和")
+print(response)
 ```
 
-</details>
+</div>
+
+### 项目 3：文档问答系统
+
+<div class="formula-box">
+
+```python
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.chains import RetrievalQA
+
+# 1. 加载 PDF
+loader = PyPDFLoader("manual.pdf")
+documents = loader.load()
+
+# 2. 分割文档
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+docs = text_splitter.split_documents(documents)
+
+# 3. 创建向量库（使用本地 Embedding）
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(docs, embeddings)
+
+# 4. 创建问答链
+qa = RetrievalQA.from_chain_type(
+    llm=ChatOpenAI(model="gpt-3.5-turbo"),
+    retriever=vectorstore.as_retriever()
+)
+
+# 5. 使用
+query = "如何安装这个软件？"
+answer = qa.run(query)
+print(answer)
+```
+
+</div>
 
 ---
 
-## 📊 进度追踪
+## 📚 学习资源
 
-### 打卡表
+### 官方文档
 
-| 章节 | 周数 | 已完成 | 进度 | 状态 |
-|------|------|--------|------|------|
-| 6.1 Prompt 工程 | 2 周 | - | 0% | ⏳ |
-| 6.2 RAG | 2 周 | - | 0% | ⏳ |
-| 6.3 微调技术 | 2 周 | - | 0% | ⏳ |
-| 6.4 开发框架 | 1 周 | - | 0% | ⏳ |
+- [OpenAI API](https://platform.openai.com/docs)
+- [LangChain](https://python.langchain.com/)
+- [HuggingFace](https://huggingface.co/docs)
 
-### 项目清单
+### 开源项目
 
-- [ ] Prompt 模板库
-- [ ] 企业知识库 RAG 系统
-- [ ] LoRA 微调开源模型
-- [ ] LangChain AI 助手
+- [LangChain](https://github.com/langchain-ai/langchain)
+- [LlamaIndex](https://github.com/run-llama/llama_index)
+- [AutoGen](https://github.com/microsoft/autogen)
+
+### 模型资源
+
+- [HuggingFace Model Hub](https://huggingface.co/models)
+- [LLaMA 下载](https://ai.meta.com/llama/)
 
 ---
 
-> _大模型是新的计算机，Prompt 是新的编程语言，RAG 是新的数据库，微调是新的编译器。_
-> 
-> _—— 悟空_
+## ✅ 学习检查清单
+
+- [ ] 理解 LLM 基本原理
+- [ ] 掌握 Prompt 工程技巧
+- [ ] 掌握 RAG 原理与实现
+- [ ] 理解微调技术（LoRA、QLoRA）
+- [ ] 了解 Agent 架构
+- [ ] 掌握 LangChain 框架
+- [ ] 完成至少 2 个实战项目
+
+---
+
+*最后更新：2026-04-22*
