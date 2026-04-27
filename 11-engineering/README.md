@@ -531,11 +531,13 @@ def adversarial_training(model, dataloader, epsilon=0.01):
 
 ### 项目清单
 
-- [ ] FastAPI 模型服务部署
-- [ ] Nginx 负载均衡配置
-- [ ] Prometheus+Grafana 监控
-- [ ] MLflow 实验追踪
-- [ ] GitHub Actions CI/CD
+- [x] FastAPI 模型服务部署（详见 [projects.md](projects.md) 项目 1）
+- [x] Nginx 负载均衡配置
+- [x] Prometheus+Grafana 监控（详见 [projects.md](projects.md) 项目 1）
+- [x] MLflow 实验追踪（详见 [projects.md](projects.md) 项目 2）
+- [x] GitHub Actions CI/CD（详见 [projects.md](projects.md) 项目 2）
+- [x] 模型 A/B 测试系统（详见 [projects.md](projects.md) 项目 3）
+- [x] RAG 生产部署（详见 [projects.md](projects.md) 项目 4）
 - [ ] 数据脱敏工具
 - [ ] 对抗训练实现
 

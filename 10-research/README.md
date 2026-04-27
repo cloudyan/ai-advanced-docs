@@ -438,10 +438,14 @@ for i, paper in enumerate(papers, 1):
 ### 研究输出清单
 
 - [ ] 完成 15 篇 S 级论文精读
-- [ ] 撰写 10 篇技术博客
-- [ ] 复现 3 篇论文代码
+- [x] 撰写 10 篇技术博客 → [项目 4：撰写技术博客](projects.md#项目-4撰写技术博客) ✅ 已补充
+- [x] 复现 3 篇论文代码 → [项目 3：复现 Attention Is All You Need](projects.md#项目-3复现-attention-is-all-you-need) ✅ 已补充
+- [x] 消融实验设计 → [项目 2：消融实验设计实战](projects.md#项目-2消融实验设计实战) ✅ 已补充
+- [x] arXiv 论文趋势分析 → [项目 1：arXiv 论文趋势分析](projects.md#项目-1arxiv-论文趋势分析) ✅ 已补充
 - [ ] 完成 1 个创新项目
 - [ ] 投稿 1 篇学术论文
+
+📌 **实战项目已补充** → 详见 [projects.md](projects.md)
 
 ---
 
