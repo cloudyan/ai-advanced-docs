@@ -76,9 +76,11 @@
 ## 阶段 8：系统优化
 
 - [概览](08-system-optimization/README)
-- 模型量化（待补充）
-- 模型压缩（待补充）
-- 推理加速（待补充）
+- [🛠️ 实战项目](08-system-optimization/projects)
+  - [项目 1：LLM INT4 量化部署](08-system-optimization/projects?id=项目-1llm-int4-量化部署)
+  - [项目 2：vLLM 推理服务搭建](08-system-optimization/projects?id=项目-2vllm-推理服务搭建)
+  - [项目 3：DeepSpeed ZeRO-3 多卡训练](08-system-optimization/projects?id=项目-3deepspeed-zero-3-多卡训练)
+  - [项目 4：模型蒸馏实战](08-system-optimization/projects?id=项目-4模型蒸馏实战)
 
 ---
 
@@ -91,30 +93,36 @@
 
 ---
 
-## 阶段 10：研究与创新
+## 阶段 10：研究能力
 
 - [概览](10-research/README)
-- 论文阅读方法（待补充）
-- 实验设计（待补充）
-- 创新思维（待补充）
+- [🛠️ 实战项目](10-research/projects)
+  - [项目 1：复现 Attention Is All You Need](10-research/projects?id=项目-1复现-attention-is-all-you-need)
+  - [项目 2：消融实验设计实战](10-research/projects?id=项目-2消融实验设计实战)
+  - [项目 3：arXiv 论文趋势分析](10-research/projects?id=项目-3arxiv-论文趋势分析)
+  - [项目 4：撰写技术博客](10-research/projects?id=项目-4撰写技术博客)
 
 ---
 
 ## 阶段 11：工程实践
 
 - [概览](11-engineering/README)
-- 模型部署（待补充）
-- MLOps（待补充）
-- 监控与运维（待补充）
+- [🛠️ 实战项目](11-engineering/projects)
+  - [项目 1：生产级 LLM API 服务](11-engineering/projects?id=项目-1生产级-llm-api-服务)
+  - [项目 2：MLOps 完整流水线](11-engineering/projects?id=项目-2mlops-完整流水线)
+  - [项目 3：模型 A/B 测试系统](11-engineering/projects?id=项目-3模型-ab-测试系统)
+  - [项目 4：RAG 生产部署](11-engineering/projects?id=项目-4rag-生产部署)
 
 ---
 
-## 阶段 12：创新与创业
+## 阶段 12：技术创新
 
 - [概览](12-innovation/README)
-- 技术产品化（待补充）
-- 创业思维（待补充）
-- 行业趋势（待补充）
+- [🛠️ 实战项目](12-innovation/projects)
+  - [项目 1：创新想法评估](12-innovation/projects?id=项目-1创新想法评估)
+  - [项目 2：快速原型开发](12-innovation/projects?id=项目-2快速原型开发)
+  - [项目 3：开源项目创建](12-innovation/projects?id=项目-3开源项目创建)
+  - [项目 4：专利申请撰写](12-innovation/projects?id=项目-4专利申请撰写)
 
 ---
 
